@@ -1,6 +1,8 @@
 /// Full-screen takeover shown when a reminder fires. Snooze / Done / Dismiss.
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -74,6 +76,18 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
+                  if (reminder.imagePath != null &&
+                      File(reminder.imagePath!).existsSync()) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      child: Image.file(
+                        File(reminder.imagePath!),
+                        height: 200,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                  ],
                   Text(
                     reminder.text,
                     style: AppTypography.alert,

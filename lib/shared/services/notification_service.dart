@@ -3,6 +3,9 @@
 /// app launches its own [FullScreenAlert] on tap (documented in CLAUDE.md).
 library;
 
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -12,10 +15,8 @@ abstract interface class NotificationService {
   /// is launched from one (so the UI can open the full-screen alert).
   Future<void> init({void Function(String? reminderId)? onTap});
 
-  /// Ask for notification + exact-alarm permission. Returns whether granted.
   Future<bool> requestPermission();
 
-  /// Schedule (or reschedule) the alert for [reminder] at its effective time.
   Future<void> schedule(Reminder reminder);
 
   Future<void> cancel(String id);
@@ -28,10 +29,16 @@ class LocalNotificationService implements NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin;
 
-  static const String _channelId = 'memoring_alerts';
+  // Channel settings (sound, importance) are locked at creation by Android, so a
+  // new id is used whenever those change. Bump this to roll out sound changes.
+  static const String _channelId = 'memoring_alerts_v3';
   static const String _channelName = 'Reminders';
 
-  /// Stable, collision-free int id derived from the reminder's uuid.
+  /// FLAG_INSISTENT — loops the sound until the user acts (rings like an alarm).
+  static final Int32List _insistent = Int32List.fromList([4]);
+  static final Int64List _vibration =
+      Int64List.fromList([0, 400, 200, 400, 200, 600]);
+
   int _intId(String id) => id.hashCode & 0x7fffffff;
 
   @override
@@ -47,7 +54,6 @@ class LocalNotificationService implements NotificationService {
       onDidReceiveNotificationResponse: (resp) => onTap?.call(resp.payload),
     );
 
-    // High-importance channel so alerts are full-screen + audible.
     await _plugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
@@ -58,10 +64,11 @@ class LocalNotificationService implements NotificationService {
             description: 'Full-screen reminder alerts',
             importance: Importance.max,
             playSound: true,
+            enableVibration: true,
+            audioAttributesUsage: AudioAttributesUsage.alarm,
           ),
         );
 
-    // App cold-launched by tapping a notification.
     final launch = await _plugin.getNotificationAppLaunchDetails();
     if ((launch?.didNotificationLaunchApp ?? false) && onTap != null) {
       onTap(launch!.notificationResponse?.payload);
@@ -74,7 +81,6 @@ class LocalNotificationService implements NotificationService {
         AndroidFlutterLocalNotificationsPlugin>();
     final androidGranted =
         await android?.requestNotificationsPermission() ?? true;
-    // Exact alarms are required for precise firing on Android 12+.
     await android?.requestExactAlarmsPermission();
 
     final ios = _plugin.resolvePlatformSpecificImplementation<
@@ -94,23 +100,40 @@ class LocalNotificationService implements NotificationService {
   Future<void> schedule(Reminder reminder) async {
     if (!reminder.isActive || reminder.isCompleted) return;
 
-    final details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        _channelId,
-        _channelName,
-        channelDescription: 'Full-screen reminder alerts',
-        importance: Importance.max,
-        priority: Priority.high,
-        fullScreenIntent: true,
-        playSound: reminder.soundEnabled,
-        category: AndroidNotificationCategory.alarm,
-        visibility: NotificationVisibility.public,
-      ),
-      iOS: DarwinNotificationDetails(
-        presentAlert: true,
-        presentSound: reminder.soundEnabled,
-        interruptionLevel: InterruptionLevel.timeSensitive,
-      ),
+    final hasImage =
+        reminder.imagePath != null && File(reminder.imagePath!).existsSync();
+
+    final androidDetails = AndroidNotificationDetails(
+      _channelId,
+      _channelName,
+      channelDescription: 'Full-screen reminder alerts',
+      importance: Importance.max,
+      priority: Priority.high,
+      fullScreenIntent: true,
+      category: AndroidNotificationCategory.alarm,
+      visibility: NotificationVisibility.public,
+      playSound: reminder.soundEnabled,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      enableVibration: true,
+      vibrationPattern: _vibration,
+      additionalFlags: reminder.soundEnabled ? _insistent : null,
+      largeIcon: hasImage ? FilePathAndroidBitmap(reminder.imagePath!) : null,
+      styleInformation: hasImage
+          ? BigPictureStyleInformation(
+              FilePathAndroidBitmap(reminder.imagePath!),
+              contentTitle: 'Memoring',
+              summaryText: reminder.text,
+            )
+          : null,
+    );
+
+    final iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentSound: reminder.soundEnabled,
+      interruptionLevel: InterruptionLevel.timeSensitive,
+      attachments: hasImage
+          ? [DarwinNotificationAttachment(reminder.imagePath!)]
+          : null,
     );
 
     await _plugin.zonedSchedule(
@@ -118,7 +141,7 @@ class LocalNotificationService implements NotificationService {
       'Memoring',
       reminder.text,
       tz.TZDateTime.from(reminder.effectiveFireAt, tz.local),
-      details,
+      NotificationDetails(android: androidDetails, iOS: iosDetails),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: reminder.id,
       uiLocalNotificationDateInterpretation:

@@ -32,8 +32,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.glassTintStrong,
         elevation: 0,
-        onPressed: () => context.push('/compose'),
-        child: const Icon(Icons.add, color: AppColors.shinyWhite, size: 28),
+        onPressed: () => context.go('/'),
+        tooltip: 'Add via chat',
+        child: const Icon(Icons.add_comment_outlined,
+            color: AppColors.shinyWhite, size: 26),
       ),
       body: SafeArea(
         child: Padding(

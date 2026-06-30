@@ -25,6 +25,10 @@ dependencies:
   # iOS-style icon font (bundled by Flutter's default template; needed by the
   # icon tree-shaker even though the UI uses Material icons)
   cupertino_icons: ^1.0.8
+  # Photo attachments
+  image_picker: ^1.1.2
+  # On-device persistence (JSON file) + image storage location
+  path_provider: ^2.1.4
 
 dev_dependencies:
   flutter_test:

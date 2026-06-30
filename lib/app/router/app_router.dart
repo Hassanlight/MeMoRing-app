@@ -4,7 +4,7 @@ library;
 
 import 'package:go_router/go_router.dart';
 import 'package:memoring/features/alert/presentation/full_screen_alert.dart';
-import 'package:memoring/features/compose/presentation/compose_screen.dart';
+import 'package:memoring/features/assistant/presentation/chat_screen.dart';
 import 'package:memoring/features/reminders/presentation/home_screen.dart';
 import 'package:memoring/features/reminders/presentation/reminder_detail_screen.dart';
 import 'package:memoring/features/settings/presentation/settings_screen.dart';
@@ -16,8 +16,8 @@ GoRouter _buildRouter() {
   return GoRouter(
     initialLocation: '/',
     routes: [
-      GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
-      GoRoute(path: '/compose', builder: (_, __) => const ComposeScreen()),
+      GoRoute(path: '/', builder: (_, __) => const ChatScreen()),
+      GoRoute(path: '/reminders', builder: (_, __) => const HomeScreen()),
       GoRoute(
         path: '/reminder/:id',
         builder: (_, state) =>

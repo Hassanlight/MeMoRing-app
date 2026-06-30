@@ -5,7 +5,7 @@ library;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:memoring/core/result.dart';
-import 'package:memoring/features/reminders/data/in_memory_reminder_repository.dart';
+import 'package:memoring/features/reminders/data/file_reminder_repository.dart';
 import 'package:memoring/features/reminders/domain/recurrence.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/domain/reminder_repository.dart';
@@ -15,7 +15,7 @@ import 'package:memoring/shared/services/notification_service.dart';
 import 'package:uuid/uuid.dart';
 
 final reminderRepositoryProvider = Provider<ReminderRepository>((ref) {
-  final repo = InMemoryReminderRepository();
+  final repo = FileReminderRepository();
   ref.onDispose(repo.dispose);
   return repo;
 });
@@ -67,6 +67,7 @@ class RemindersController {
     required DateTime fireAt,
     required Recurrence recurrence,
     bool soundEnabled = true,
+    String? imagePath,
   }) async {
     final clean = text.trim();
     if (clean.isEmpty) return const Err('Add a few words about what to remember.');
@@ -85,11 +86,43 @@ class RemindersController {
       ),
       recurrence: recurrence,
       soundEnabled: soundEnabled,
+      imagePath: imagePath,
     );
     await _repo.add(reminder);
     await _notifications.schedule(reminder);
     return Ok(reminder);
   }
+
+  /// Natural-language cancel: deletes the active reminder whose text best matches
+  /// [target]. Returns the deleted reminder, or null if nothing matched.
+  Future<Reminder?> deleteByMatch(String target) async {
+    final active =
+        (await _repo.getAll()).where((r) => !r.isCompleted).toList();
+    if (active.isEmpty) return null;
+
+    final wanted = _tokens(target);
+    if (wanted.isEmpty) return null;
+
+    Reminder? best;
+    var bestScore = 0;
+    for (final r in active) {
+      final have = _tokens(r.text);
+      final score = wanted.where(have.contains).length;
+      if (score > bestScore) {
+        bestScore = score;
+        best = r;
+      }
+    }
+    if (best == null || bestScore == 0) return null;
+    await delete(best.id);
+    return best;
+  }
+
+  Set<String> _tokens(String s) => s
+      .toLowerCase()
+      .split(RegExp(r'[^a-z0-9]+'))
+      .where((w) => w.length > 2)
+      .toSet();
 
   Future<void> save(Reminder reminder) async {
     await _repo.update(reminder);

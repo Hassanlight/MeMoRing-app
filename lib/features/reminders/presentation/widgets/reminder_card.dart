@@ -1,5 +1,7 @@
-/// A single reminder row: tag dot + relative time + text + meta.
+/// A single reminder row: tag dot + relative time + text + meta (+ photo).
 library;
+
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:memoring/app/theme/app_colors.dart';
@@ -59,6 +61,19 @@ class ReminderCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(formatWhen(fireAt), style: AppTypography.caption),
+          if (reminder.imagePath != null &&
+              File(reminder.imagePath!).existsSync()) ...[
+            const SizedBox(height: AppSpacing.md),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppSpacing.md),
+              child: Image.file(
+                File(reminder.imagePath!),
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ],
         ],
       ),
     );

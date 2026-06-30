@@ -1,4 +1,4 @@
-/// The core reminder entity.
+/// The core reminder entity (+ JSON serialization for on-device persistence).
 library;
 
 import 'package:memoring/features/reminders/domain/recurrence.dart';
@@ -7,7 +7,8 @@ import 'package:memoring/features/reminders/domain/recurrence.dart';
 enum ReminderType { short, long }
 
 /// An immutable reminder. [fireAt] is the next occurrence as local wall-clock
-/// time; persistence converts to UTC. [text] is already cleaned of its time phrase.
+/// time; [text] is already cleaned of its time phrase. [imagePath] is an
+/// optional on-device photo shown in the alert and notification.
 final class Reminder {
   const Reminder({
     required this.id,
@@ -20,7 +21,32 @@ final class Reminder {
     this.snoozedUntil,
     this.soundEnabled = true,
     this.completedAt,
+    this.imagePath,
   });
+
+  factory Reminder.fromJson(Map<String, dynamic> json) {
+    DateTime? at(String key) {
+      final v = json[key];
+      return v == null ? null : DateTime.fromMillisecondsSinceEpoch(v as int);
+    }
+
+    return Reminder(
+      id: json['id'] as String,
+      text: json['text'] as String,
+      createdAt: at('createdAt')!,
+      fireAt: at('fireAt')!,
+      type: ReminderType.values.byName(json['type'] as String),
+      recurrence: Recurrence(
+        RecurrenceType.values.byName(json['recurrenceType'] as String),
+        weekday: json['weekday'] as int?,
+      ),
+      isActive: json['isActive'] as bool? ?? true,
+      snoozedUntil: at('snoozedUntil'),
+      soundEnabled: json['soundEnabled'] as bool? ?? true,
+      completedAt: at('completedAt'),
+      imagePath: json['imagePath'] as String?,
+    );
+  }
 
   final String id;
   final String text;
@@ -32,11 +58,27 @@ final class Reminder {
   final DateTime? snoozedUntil;
   final bool soundEnabled;
   final DateTime? completedAt;
+  final String? imagePath;
 
   bool get isCompleted => completedAt != null;
 
   /// The moment this reminder will actually alert (snooze overrides fireAt).
   DateTime get effectiveFireAt => snoozedUntil ?? fireAt;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'text': text,
+        'createdAt': createdAt.millisecondsSinceEpoch,
+        'fireAt': fireAt.millisecondsSinceEpoch,
+        'type': type.name,
+        'recurrenceType': recurrence.type.name,
+        'weekday': recurrence.weekday,
+        'isActive': isActive,
+        'snoozedUntil': snoozedUntil?.millisecondsSinceEpoch,
+        'soundEnabled': soundEnabled,
+        'completedAt': completedAt?.millisecondsSinceEpoch,
+        'imagePath': imagePath,
+      };
 
   Reminder copyWith({
     String? text,
@@ -47,6 +89,7 @@ final class Reminder {
     bool? soundEnabled,
     DateTime? Function()? snoozedUntil,
     DateTime? Function()? completedAt,
+    String? Function()? imagePath,
   }) {
     return Reminder(
       id: id,
@@ -59,6 +102,7 @@ final class Reminder {
       soundEnabled: soundEnabled ?? this.soundEnabled,
       snoozedUntil: snoozedUntil != null ? snoozedUntil() : this.snoozedUntil,
       completedAt: completedAt != null ? completedAt() : this.completedAt,
+      imagePath: imagePath != null ? imagePath() : this.imagePath,
     );
   }
 }
