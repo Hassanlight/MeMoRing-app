@@ -56,6 +56,13 @@ jobs:
             echo "No app Gradle file found"; exit 1
           fi
 
+      # Replace the default manifest with one that enables full-screen alerts,
+      # exact alarms, and reboot rescheduling.
+      - name: Apply full-screen-alert manifest
+        run: |
+          cp ci/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          echo "applied manifest:"; cat android/app/src/main/AndroidManifest.xml
+
       - name: Install dependencies
         run: flutter pub get
 

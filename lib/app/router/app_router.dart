@@ -1,4 +1,5 @@
-/// All routes (CLAUDE.md §4). The alert route is launchable from a notification.
+/// All routes (CLAUDE.md §4). Exposed as a singleton so a fired notification can
+/// navigate to the alert from outside the widget tree.
 library;
 
 import 'package:go_router/go_router.dart';
@@ -8,7 +9,10 @@ import 'package:memoring/features/reminders/presentation/home_screen.dart';
 import 'package:memoring/features/reminders/presentation/reminder_detail_screen.dart';
 import 'package:memoring/features/settings/presentation/settings_screen.dart';
 
-GoRouter buildRouter() {
+/// The app's single router instance.
+final GoRouter appRouter = _buildRouter();
+
+GoRouter _buildRouter() {
   return GoRouter(
     initialLocation: '/',
     routes: [

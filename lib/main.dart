@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:memoring/app/app.dart';
+import 'package:memoring/app/router/app_router.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -24,12 +25,20 @@ Future<void> main() async {
   }
 
   final container = ProviderContainer();
-  await container.read(notificationServiceProvider).init();
+  await container.read(notificationServiceProvider).init(
+    onTap: (reminderId) {
+      if (reminderId == null || reminderId.isEmpty) return;
+      // Defer until the router is attached (covers cold-launch too).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        appRouter.push('/alert/$reminderId');
+      });
+    },
+  );
 
   runApp(
     UncontrolledProviderScope(
       container: container,
-      child: MemoringApp(),
+      child: const MemoringApp(),
     ),
   );
 }

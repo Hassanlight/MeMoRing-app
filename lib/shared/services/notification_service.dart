@@ -8,9 +8,11 @@ import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 abstract interface class NotificationService {
-  Future<void> init();
+  /// [onTap] fires with a reminder id when a notification is tapped or the app
+  /// is launched from one (so the UI can open the full-screen alert).
+  Future<void> init({void Function(String? reminderId)? onTap});
 
-  /// Ask for notification permission. Returns whether it was granted.
+  /// Ask for notification + exact-alarm permission. Returns whether granted.
   Future<bool> requestPermission();
 
   /// Schedule (or reschedule) the alert for [reminder] at its effective time.
@@ -33,7 +35,7 @@ class LocalNotificationService implements NotificationService {
   int _intId(String id) => id.hashCode & 0x7fffffff;
 
   @override
-  Future<void> init() async {
+  Future<void> init({void Function(String? reminderId)? onTap}) async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings(
       requestAlertPermission: false,
@@ -42,14 +44,38 @@ class LocalNotificationService implements NotificationService {
     );
     await _plugin.initialize(
       const InitializationSettings(android: android, iOS: ios),
+      onDidReceiveNotificationResponse: (resp) => onTap?.call(resp.payload),
     );
+
+    // High-importance channel so alerts are full-screen + audible.
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _channelId,
+            _channelName,
+            description: 'Full-screen reminder alerts',
+            importance: Importance.max,
+            playSound: true,
+          ),
+        );
+
+    // App cold-launched by tapping a notification.
+    final launch = await _plugin.getNotificationAppLaunchDetails();
+    if ((launch?.didNotificationLaunchApp ?? false) && onTap != null) {
+      onTap(launch!.notificationResponse?.payload);
+    }
   }
 
   @override
   Future<bool> requestPermission() async {
     final android = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
-    final androidGranted = await android?.requestNotificationsPermission() ?? true;
+    final androidGranted =
+        await android?.requestNotificationsPermission() ?? true;
+    // Exact alarms are required for precise firing on Android 12+.
+    await android?.requestExactAlarmsPermission();
 
     final ios = _plugin.resolvePlatformSpecificImplementation<
         IOSFlutterLocalNotificationsPlugin>();
@@ -78,6 +104,7 @@ class LocalNotificationService implements NotificationService {
         fullScreenIntent: true,
         playSound: reminder.soundEnabled,
         category: AndroidNotificationCategory.alarm,
+        visibility: NotificationVisibility.public,
       ),
       iOS: DarwinNotificationDetails(
         presentAlert: true,

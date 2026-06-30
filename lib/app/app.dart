@@ -6,9 +6,7 @@ import 'package:memoring/app/router/app_router.dart';
 import 'package:memoring/app/theme/app_theme.dart';
 
 class MemoringApp extends StatelessWidget {
-  MemoringApp({super.key});
-
-  final _router = buildRouter();
+  const MemoringApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +14,7 @@ class MemoringApp extends StatelessWidget {
       title: 'Memoring',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
-      routerConfig: _router,
+      routerConfig: appRouter,
     );
   }
 }
