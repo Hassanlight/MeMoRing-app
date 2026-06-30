@@ -28,6 +28,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
   final _picker = ImagePicker();
+  final _inputFocus = FocusNode();
   String? _pendingImage;
   bool _busy = false;
 
@@ -35,6 +36,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void dispose() {
     _input.dispose();
     _scroll.dispose();
+    _inputFocus.dispose();
     super.dispose();
   }
 
@@ -62,6 +64,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     await ref.read(chatProvider.notifier).send(text, imagePath: image);
     if (mounted) setState(() => _busy = false);
     _scrollToEnd();
+    // Keep the keyboard up so the next reminder can be typed immediately.
+    if (mounted) _inputFocus.requestFocus();
   }
 
   Future<void> _attach() async {
@@ -133,6 +137,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
             _InputBar(
               controller: _input,
+              focusNode: _inputFocus,
               pendingImage: _pendingImage,
               busy: _busy,
               onAttach: _attach,
@@ -243,6 +248,7 @@ class _Bubble extends StatelessWidget {
 class _InputBar extends StatelessWidget {
   const _InputBar({
     required this.controller,
+    required this.focusNode,
     required this.pendingImage,
     required this.busy,
     required this.onAttach,
@@ -251,6 +257,7 @@ class _InputBar extends StatelessWidget {
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final String? pendingImage;
   final bool busy;
   final VoidCallback onAttach;
@@ -310,6 +317,10 @@ class _InputBar extends StatelessWidget {
               Expanded(
                 child: TextField(
                   controller: controller,
+                  focusNode: focusNode,
+                  autofocus: true,
+                  keyboardType: TextInputType.text,
+                  textCapitalization: TextCapitalization.sentences,
                   style: AppTypography.body,
                   minLines: 1,
                   maxLines: 4,
