@@ -23,6 +23,9 @@ dependencies:
   flutter_timezone: ^3.0.1
   # Stable, non-guessable ids
   uuid: ^4.4.0
+  # iOS-style icon font (bundled by Flutter's default template; needed by the
+  # icon tree-shaker even though the UI uses Material icons)
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
