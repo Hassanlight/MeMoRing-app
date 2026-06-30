@@ -15,8 +15,8 @@ Future<void> main() async {
   // Timezone-correct scheduling (DST-safe). Device-timezone auto-detection was
   // removed to keep the Android build toolchain-clean; default to the launch
   // market (Qatar) and fall back to UTC.
-  // TODO(scheduler): restore dynamic device-timezone detection with a
-  // Gradle-compatible plugin before multi-region release.
+  // TODO(scheduler): restore dynamic device-timezone detection before
+  // multi-region release.
   tzdata.initializeTimeZones();
   try {
     tz.setLocalLocation(tz.getLocation('Asia/Qatar'));
@@ -25,10 +25,10 @@ Future<void> main() async {
   }
 
   final container = ProviderContainer();
-  await container.read(notificationServiceProvider).init(
+  final notifications = container.read(notificationServiceProvider);
+  await notifications.init(
     onTap: (reminderId) {
       if (reminderId == null || reminderId.isEmpty) return;
-      // Defer until the router is attached (covers cold-launch too).
       WidgetsBinding.instance.addPostFrameCallback((_) {
         appRouter.push('/alert/$reminderId');
       });
@@ -41,4 +41,18 @@ Future<void> main() async {
       child: const MemoringApp(),
     ),
   );
+
+  // Ask for notification + exact-alarm permission once the UI is up (a resumed
+  // activity is required for the system dialog), then make sure every saved
+  // reminder actually has a pending alarm.
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    await notifications.requestPermission();
+    final repo = container.read(reminderRepositoryProvider);
+    final now = DateTime.now();
+    for (final r in await repo.getAll()) {
+      if (r.isActive && !r.isCompleted && r.effectiveFireAt.isAfter(now)) {
+        await notifications.schedule(r);
+      }
+    }
+  });
 }

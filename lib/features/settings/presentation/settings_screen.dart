@@ -54,6 +54,29 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
+            GlassCard(
+              onTap: () async {
+                await ref.read(notificationServiceProvider).scheduleTest();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Test alert in 5 seconds — lock or background the app'),
+                    ),
+                  );
+                }
+              },
+              child: const Row(
+                children: [
+                  Icon(Icons.notifications_outlined,
+                      color: AppColors.mutedWhite, size: 20),
+                  SizedBox(width: AppSpacing.md),
+                  Text('Send a test alert', style: AppTypography.bodyMedium),
+                  Spacer(),
+                  Icon(Icons.play_arrow, color: AppColors.mutedWhite),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
             const GlassCard(
               child: Row(
                 children: [
