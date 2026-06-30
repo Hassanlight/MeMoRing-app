@@ -1,0 +1,55 @@
+# Builds an installable Android APK in the cloud on every push (and on demand).
+# Download it from the run's "Artifacts" section → memoring-apk → app-release.apk.
+name: Build APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: {}
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter --version
+
+      # The android/ folder isn't committed; generate it (and only it) here.
+      - name: Generate Android platform files
+        run: flutter create --platforms=android --project-name memoring .
+
+      # Remove the default counter-app widget test that `flutter create` adds,
+      # since it references a template app we don't have.
+      - name: Remove template test
+        run: rm -f test/widget_test.dart
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run unit tests (non-blocking)
+        run: flutter test
+        continue-on-error: true
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: memoring-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error

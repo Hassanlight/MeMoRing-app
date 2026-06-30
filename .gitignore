@@ -1,0 +1,46 @@
+# Memoring — standalone Flutter repo .gitignore
+#
+# Isolation note: the home directory (C:\Users\HP) is a git repo for the Layal/
+# StyleByAsma project. It ignores this whole folder via its .git/info/exclude, so
+# nothing here can ever reach that repo. THIS file governs Memoring's OWN repo
+# (the one used for the cloud APK build).
+
+# Admin-only log — never commit
+progress.txt
+
+# Dart / Flutter
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+pubspec.lock
+.metadata
+
+# Generated platform folders are recreated by CI (`flutter create`)
+# (kept out so the repo stays lean; remove these two lines if you add native config)
+/android/
+/ios/
+/linux/
+/macos/
+/windows/
+/web/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Android signing / secrets (never commit)
+key.properties
+**/*.keystore
+**/*.jks
+local.properties
+
+# OS
+.DS_Store
+Thumbs.db

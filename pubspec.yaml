@@ -1,0 +1,34 @@
+# Memoring — offline-first reminder app.
+# Run: flutter pub get && flutter run
+name: memoring
+description: Type a reminder in plain text; Memoring figures out when and fires a full-screen alert.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # State management
+  flutter_riverpod: ^2.5.1
+  # Navigation
+  go_router: ^14.2.0
+  # Notifications (full-screen intent + sound)
+  flutter_local_notifications: ^17.2.1
+  # Timezone-correct scheduling (DST-safe)
+  timezone: ^0.9.4
+  flutter_timezone: ^3.0.1
+  # Stable, non-guessable ids
+  uuid: ^4.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  very_good_analysis: ^6.0.0
+
+flutter:
+  uses-material-design: true
