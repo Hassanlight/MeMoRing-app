@@ -61,8 +61,10 @@ jobs:
             '        }' \
             '      }' \
             '    }' \
-            '    project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {' \
-            '      kotlinOptions { jvmTarget = "17" }' \
+            '    project.plugins.withId("org.jetbrains.kotlin.android") {' \
+            '      project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {' \
+            '        kotlinOptions { jvmTarget = "17" }' \
+            '      }' \
             '    }' \
             '  }' \
             '}' > ~/.gradle/init.d/jvmtarget.gradle
