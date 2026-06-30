@@ -44,32 +44,6 @@ jobs:
         run: flutter test
         continue-on-error: true
 
-      # Some plugins (e.g. flutter_timezone) compile Kotlin at an older JVM target
-      # than Java, which newer Gradle rejects. A global init script aligns every
-      # module to JVM 17 — DSL-agnostic, no edits to generated Gradle files.
-      - name: Align JVM target across all modules
-        run: |
-          mkdir -p ~/.gradle/init.d
-          printf '%s\n' \
-            'allprojects {' \
-            '  afterEvaluate { project ->' \
-            '    if (project.hasProperty("android")) {' \
-            '      project.android {' \
-            '        compileOptions {' \
-            '          sourceCompatibility JavaVersion.VERSION_17' \
-            '          targetCompatibility JavaVersion.VERSION_17' \
-            '        }' \
-            '      }' \
-            '    }' \
-            '    project.plugins.withId("org.jetbrains.kotlin.android") {' \
-            '      project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {' \
-            '        kotlinOptions { jvmTarget = "17" }' \
-            '      }' \
-            '    }' \
-            '  }' \
-            '}' > ~/.gradle/init.d/jvmtarget.gradle
-          cat ~/.gradle/init.d/jvmtarget.gradle
-
       - name: Build release APK
         run: flutter build apk --release
 
