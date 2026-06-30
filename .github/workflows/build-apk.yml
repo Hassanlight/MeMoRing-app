@@ -37,6 +37,25 @@ jobs:
       - name: Remove template test
         run: rm -f test/widget_test.dart
 
+      # flutter_local_notifications requires Java 8+ API desugaring. Patch the
+      # generated app Gradle file (handles both Kotlin DSL and Groovy).
+      - name: Enable core library desugaring
+        run: |
+          set -e
+          KTS=android/app/build.gradle.kts
+          GROOVY=android/app/build.gradle
+          if [ -f "$KTS" ]; then
+            sed -i 's/compileOptions {/compileOptions {\n        isCoreLibraryDesugaringEnabled = true/' "$KTS"
+            printf '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n' >> "$KTS"
+            echo "patched $KTS"; tail -6 "$KTS"
+          elif [ -f "$GROOVY" ]; then
+            sed -i 's/compileOptions {/compileOptions {\n        coreLibraryDesugaringEnabled true/' "$GROOVY"
+            printf '\ndependencies {\n    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"\n}\n' >> "$GROOVY"
+            echo "patched $GROOVY"; tail -6 "$GROOVY"
+          else
+            echo "No app Gradle file found"; exit 1
+          fi
+
       - name: Install dependencies
         run: flutter pub get
 
