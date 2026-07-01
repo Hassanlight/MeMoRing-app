@@ -32,7 +32,7 @@ dependencies:
   # Offline prayer-time calculation (no network, no location service needed)
   adhan: ^2.0.0
   # Voice input — speak a reminder instead of typing
-  speech_to_text: ^6.6.0
+  speech_to_text: ^7.0.0
 
 dev_dependencies:
   flutter_test:
