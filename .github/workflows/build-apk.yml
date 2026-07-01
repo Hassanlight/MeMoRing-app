@@ -74,7 +74,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Run unit tests (non-blocking)
+      - name: Analyze (non-blocking)
+        run: flutter analyze
+        continue-on-error: true
+
+      - name: Run all tests (unit + widget, non-blocking)
         run: flutter test
         continue-on-error: true
 
