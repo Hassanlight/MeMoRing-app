@@ -4,6 +4,7 @@ library;
 
 import 'package:go_router/go_router.dart';
 import 'package:memoring/features/alert/presentation/full_screen_alert.dart';
+import 'package:memoring/features/analytics/presentation/analytics_screen.dart';
 import 'package:memoring/features/assistant/presentation/chat_screen.dart';
 import 'package:memoring/features/reminders/presentation/home_screen.dart';
 import 'package:memoring/features/reminders/presentation/reminder_detail_screen.dart';
@@ -23,6 +24,7 @@ GoRouter _buildRouter() {
         builder: (_, state) =>
             ReminderDetailScreen(id: state.pathParameters['id']!),
       ),
+      GoRoute(path: '/analytics', builder: (_, __) => const AnalyticsScreen()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
       GoRoute(
         path: '/alert/:id',

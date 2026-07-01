@@ -20,6 +20,7 @@ final class ChatMessage {
     this.imagePath,
     this.reminder,
     this.pendingText,
+    this.intensity = ReminderIntensity.low,
   });
 
   ChatMessage.user(String text, {String? imagePath})
@@ -36,13 +37,17 @@ final class ChatMessage {
           reminder: reminder,
         );
 
-  ChatMessage.needsTime(String pendingText, String? imagePath)
-      : this(
+  ChatMessage.needsTime(
+    String pendingText,
+    String? imagePath,
+    ReminderIntensity intensity,
+  ) : this(
           role: ChatRole.assistant,
           text: "When should I remind you?",
           kind: ChatKind.needsTime,
           pendingText: pendingText,
           imagePath: imagePath,
+          intensity: intensity,
         );
 
   final ChatRole role;
@@ -51,4 +56,5 @@ final class ChatMessage {
   final String? imagePath;
   final Reminder? reminder;
   final String? pendingText;
+  final ReminderIntensity intensity;
 }

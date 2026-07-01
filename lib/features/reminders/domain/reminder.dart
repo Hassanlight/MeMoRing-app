@@ -6,6 +6,12 @@ import 'package:memoring/features/reminders/domain/recurrence.dart';
 /// Short-term (< 30 days) vs long-term (>= 30 days) queue.
 enum ReminderType { short, long }
 
+/// How insistent the alert is.
+/// - [low]: pops up with a single tone, once.
+/// - [medium]: pops up and keeps ringing until dismissed.
+/// - [high]: keeps ringing until the user takes a selfie to confirm.
+enum ReminderIntensity { low, medium, high }
+
 /// An immutable reminder. [fireAt] is the next occurrence as local wall-clock
 /// time; [text] is already cleaned of its time phrase. [imagePath] is an
 /// optional on-device photo shown in the alert and notification.
@@ -22,6 +28,7 @@ final class Reminder {
     this.soundEnabled = true,
     this.completedAt,
     this.imagePath,
+    this.intensity = ReminderIntensity.low,
   });
 
   factory Reminder.fromJson(Map<String, dynamic> json) {
@@ -45,6 +52,8 @@ final class Reminder {
       soundEnabled: json['soundEnabled'] as bool? ?? true,
       completedAt: at('completedAt'),
       imagePath: json['imagePath'] as String?,
+      intensity: ReminderIntensity.values
+          .byName(json['intensity'] as String? ?? 'low'),
     );
   }
 
@@ -59,6 +68,7 @@ final class Reminder {
   final bool soundEnabled;
   final DateTime? completedAt;
   final String? imagePath;
+  final ReminderIntensity intensity;
 
   bool get isCompleted => completedAt != null;
 
@@ -78,6 +88,7 @@ final class Reminder {
         'soundEnabled': soundEnabled,
         'completedAt': completedAt?.millisecondsSinceEpoch,
         'imagePath': imagePath,
+        'intensity': intensity.name,
       };
 
   Reminder copyWith({
@@ -90,6 +101,7 @@ final class Reminder {
     DateTime? Function()? snoozedUntil,
     DateTime? Function()? completedAt,
     String? Function()? imagePath,
+    ReminderIntensity? intensity,
   }) {
     return Reminder(
       id: id,
@@ -103,6 +115,7 @@ final class Reminder {
       snoozedUntil: snoozedUntil != null ? snoozedUntil() : this.snoozedUntil,
       completedAt: completedAt != null ? completedAt() : this.completedAt,
       imagePath: imagePath != null ? imagePath() : this.imagePath,
+      intensity: intensity ?? this.intensity,
     );
   }
 }

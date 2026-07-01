@@ -15,6 +15,7 @@ import 'package:memoring/core/image_store.dart';
 import 'package:memoring/core/widgets/glass_button.dart';
 import 'package:memoring/features/assistant/domain/chat_message.dart';
 import 'package:memoring/features/assistant/presentation/chat_controller.dart';
+import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/presentation/widgets/reminder_card.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -30,6 +31,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _picker = ImagePicker();
   final _inputFocus = FocusNode();
   String? _pendingImage;
+  ReminderIntensity _intensity = ReminderIntensity.low;
   bool _busy = false;
 
   @override
@@ -61,7 +63,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _pendingImage = null;
       _busy = true;
     });
-    await ref.read(chatProvider.notifier).send(text, imagePath: image);
+    await ref
+        .read(chatProvider.notifier)
+        .send(text, imagePath: image, intensity: _intensity);
     if (mounted) setState(() => _busy = false);
     _scrollToEnd();
     // Keep the keyboard up so the next reminder can be typed immediately.
@@ -110,6 +114,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         title: const Text('Memoring', style: AppTypography.heading),
         actions: [
           IconButton(
+            tooltip: 'Insights',
+            onPressed: () => context.push('/analytics'),
+            icon: const Icon(Icons.insights_outlined, color: AppColors.mutedWhite),
+          ),
+          IconButton(
             tooltip: 'All reminders',
             onPressed: () => context.push('/reminders'),
             icon: const Icon(Icons.list_alt_outlined, color: AppColors.mutedWhite),
@@ -139,6 +148,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               controller: _input,
               focusNode: _inputFocus,
               pendingImage: _pendingImage,
+              intensity: _intensity,
+              onIntensity: (i) => setState(() => _intensity = i),
               busy: _busy,
               onAttach: _attach,
               onClearImage: () => setState(() => _pendingImage = null),
@@ -170,8 +181,48 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           message.pendingText ?? '',
           fireAt,
           message.imagePath,
+          message.intensity,
         );
     _scrollToEnd();
+  }
+}
+
+class _IntensityChip extends StatelessWidget {
+  const _IntensityChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppColors.shinyWhite : AppColors.mutedWhite;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.glassTintStrong : AppColors.glassTint,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: AppSpacing.xs),
+            Text(label,
+                style: AppTypography.caption.copyWith(color: color)),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -250,6 +301,8 @@ class _InputBar extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.pendingImage,
+    required this.intensity,
+    required this.onIntensity,
     required this.busy,
     required this.onAttach,
     required this.onClearImage,
@@ -259,6 +312,8 @@ class _InputBar extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final String? pendingImage;
+  final ReminderIntensity intensity;
+  final ValueChanged<ReminderIntensity> onIntensity;
   final bool busy;
   final VoidCallback onAttach;
   final VoidCallback onClearImage;
@@ -275,6 +330,35 @@ class _InputBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Wrap(
+                spacing: AppSpacing.sm,
+                children: [
+                  _IntensityChip(
+                    label: 'Once',
+                    icon: Icons.notifications_none,
+                    selected: intensity == ReminderIntensity.low,
+                    onTap: () => onIntensity(ReminderIntensity.low),
+                  ),
+                  _IntensityChip(
+                    label: 'Ring',
+                    icon: Icons.notifications_active_outlined,
+                    selected: intensity == ReminderIntensity.medium,
+                    onTap: () => onIntensity(ReminderIntensity.medium),
+                  ),
+                  _IntensityChip(
+                    label: 'Selfie',
+                    icon: Icons.camera_front_outlined,
+                    selected: intensity == ReminderIntensity.high,
+                    onTap: () => onIntensity(ReminderIntensity.high),
+                  ),
+                ],
+              ),
+            ),
+          ),
           if (pendingImage != null)
             Align(
               alignment: Alignment.centerLeft,

@@ -108,8 +108,16 @@ class LocalNotificationService implements NotificationService {
     return androidGranted || iosGranted;
   }
 
-  NotificationDetails _details({required bool sound, String? imagePath}) {
+  NotificationDetails _details({
+    required bool sound,
+    ReminderIntensity intensity = ReminderIntensity.low,
+    String? imagePath,
+  }) {
     final hasImage = imagePath != null && File(imagePath).existsSync();
+    // low = one tone; medium/high = loop the sound until acted on;
+    // high = ongoing (can't be swiped away — must confirm with a selfie).
+    final loops = sound && intensity != ReminderIntensity.low;
+    final ongoing = intensity == ReminderIntensity.high;
     return NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,
@@ -124,7 +132,9 @@ class LocalNotificationService implements NotificationService {
         audioAttributesUsage: AudioAttributesUsage.alarm,
         enableVibration: true,
         vibrationPattern: _vibration,
-        additionalFlags: sound ? _insistent : null,
+        ongoing: ongoing,
+        autoCancel: !ongoing,
+        additionalFlags: loops ? _insistent : null,
         largeIcon: hasImage ? FilePathAndroidBitmap(imagePath) : null,
         styleInformation: hasImage
             ? BigPictureStyleInformation(
@@ -182,7 +192,11 @@ class LocalNotificationService implements NotificationService {
       title: 'Memoring',
       body: reminder.text,
       when: tz.TZDateTime.from(reminder.effectiveFireAt, tz.local),
-      details: _details(sound: reminder.soundEnabled, imagePath: reminder.imagePath),
+      details: _details(
+        sound: reminder.soundEnabled,
+        intensity: reminder.intensity,
+        imagePath: reminder.imagePath,
+      ),
       payload: reminder.id,
     );
   }

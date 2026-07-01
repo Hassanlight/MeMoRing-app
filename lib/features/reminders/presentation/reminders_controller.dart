@@ -68,6 +68,7 @@ class RemindersController {
     required Recurrence recurrence,
     bool soundEnabled = true,
     String? imagePath,
+    ReminderIntensity intensity = ReminderIntensity.low,
   }) async {
     final clean = text.trim();
     if (clean.isEmpty) return const Err('Add a few words about what to remember.');
@@ -87,11 +88,16 @@ class RemindersController {
       recurrence: recurrence,
       soundEnabled: soundEnabled,
       imagePath: imagePath,
+      intensity: intensity,
     );
     await _repo.add(reminder);
     await _notifications.schedule(reminder);
     return Ok(reminder);
   }
+
+  /// Silence a firing reminder's notification (stops the ringing) without
+  /// deleting the reminder — used when the alert is dismissed.
+  Future<void> stopAlert(String id) => _notifications.cancel(id);
 
   /// Natural-language cancel: deletes the active reminder whose text best matches
   /// [target]. Returns the deleted reminder, or null if nothing matched.

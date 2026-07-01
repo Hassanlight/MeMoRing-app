@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:memoring/core/result.dart';
 import 'package:memoring/features/assistant/domain/chat_message.dart';
 import 'package:memoring/features/reminders/domain/recurrence.dart';
+import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
 import 'package:memoring/features/scheduler/data/cancellation_parser.dart';
 import 'package:memoring/features/scheduler/domain/parsed_reminder.dart';
@@ -27,7 +28,11 @@ class ChatController extends Notifier<List<ChatMessage>> {
   void _append(ChatMessage m) => state = [...state, m];
 
   /// Handle one user turn (text and/or photo). Auto-creates or cancels.
-  Future<void> send(String text, {String? imagePath}) async {
+  Future<void> send(
+    String text, {
+    String? imagePath,
+    ReminderIntensity intensity = ReminderIntensity.low,
+  }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty && imagePath == null) return;
     _append(ChatMessage.user(trimmed.isEmpty ? '📷 photo' : trimmed,
@@ -57,6 +62,7 @@ class ChatController extends Notifier<List<ChatMessage>> {
               fireAt: reminder.fireAt,
               recurrence: reminder.recurrence,
               imagePath: imagePath,
+              intensity: intensity,
             );
         switch (res) {
           case Ok(:final value):
@@ -65,19 +71,25 @@ class ChatController extends Notifier<List<ChatMessage>> {
             _append(ChatMessage.assistant(message));
         }
       case ParseNeedsTime(:final cleanText):
-        _append(ChatMessage.needsTime(cleanText, imagePath));
+        _append(ChatMessage.needsTime(cleanText, imagePath, intensity));
       case ParseFailure(:final message):
         _append(ChatMessage.assistant(message));
     }
   }
 
   /// Complete a needs-time message once the user picks a moment.
-  Future<void> createAt(String text, DateTime fireAt, String? imagePath) async {
+  Future<void> createAt(
+    String text,
+    DateTime fireAt,
+    String? imagePath,
+    ReminderIntensity intensity,
+  ) async {
     final res = await ref.read(remindersControllerProvider).create(
           text: text,
           fireAt: fireAt,
           recurrence: const Recurrence.none(),
           imagePath: imagePath,
+          intensity: intensity,
         );
     switch (res) {
       case Ok(:final value):
