@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:memoring/app/app.dart';
 import 'package:memoring/app/router/app_router.dart';
+import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
+import 'package:memoring/features/prayer/presentation/prayer_providers.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -25,6 +27,11 @@ Future<void> main() async {
   }
 
   final container = ProviderContainer();
+
+  // First run → show onboarding; otherwise straight to the chat.
+  final profile = await container.read(profileRepositoryProvider).load();
+  appInitialLocation = profile == null ? '/onboarding' : '/';
+
   final notifications = container.read(notificationServiceProvider);
   await notifications.init(
     onTap: (reminderId) {
@@ -47,6 +54,10 @@ Future<void> main() async {
   // reminder actually has a pending alarm.
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     await notifications.requestPermission();
+    // Keep prayer reminders current for returning Muslim users.
+    if (profile != null) {
+      await container.read(prayerServiceProvider).sync(profile);
+    }
     final repo = container.read(reminderRepositoryProvider);
     final now = DateTime.now();
     for (final r in await repo.getAll()) {

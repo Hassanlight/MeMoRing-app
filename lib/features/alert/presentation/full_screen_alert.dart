@@ -15,6 +15,7 @@ import 'package:memoring/app/theme/app_typography.dart';
 import 'package:memoring/core/image_store.dart';
 import 'package:memoring/core/time_format.dart';
 import 'package:memoring/core/widgets/glass_button.dart';
+import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
 
@@ -57,6 +58,7 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
     }
     final controller = ref.read(remindersControllerProvider);
     final isHigh = reminder.intensity == ReminderIntensity.high;
+    final isMuslim = ref.watch(profileProvider).valueOrNull?.isMuslim ?? false;
 
     Future<void> stopAndPop(Future<void> Function() action) async {
       await controller.stopAlert(reminder.id);
@@ -66,19 +68,28 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
 
     Future<void> takeSelfie() async {
       setState(() => _capturing = true);
-      final shot = await _picker.pickImage(
-        source: ImageSource.camera,
-        preferredCameraDevice: CameraDevice.front,
-        imageQuality: 70,
-      );
-      if (shot == null) {
-        if (mounted) setState(() => _capturing = false);
-        return;
+      try {
+        final shot = await _picker.pickImage(
+          source: ImageSource.camera,
+          preferredCameraDevice: CameraDevice.front,
+          imageQuality: 70,
+        );
+        if (shot == null) {
+          if (mounted) setState(() => _capturing = false);
+          return;
+        }
+        final saved = await persistImage(shot.path);
+        await controller.stopAlert(reminder.id);
+        await controller.complete(reminder.copyWith(imagePath: () => saved));
+        if (context.mounted) context.pop();
+      } catch (e) {
+        if (mounted) {
+          setState(() => _capturing = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Camera error: $e')),
+          );
+        }
       }
-      final saved = await persistImage(shot.path);
-      await controller.stopAlert(reminder.id);
-      await controller.complete(reminder.copyWith(imagePath: () => saved));
-      if (context.mounted) context.pop();
     }
 
     return Scaffold(
@@ -128,13 +139,17 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
                   const Spacer(),
                   if (isHigh) ...[
                     Text(
-                      'Take a selfie to confirm and stop the alarm.',
+                      isMuslim
+                          ? 'Take a selfie in front of a mosque to confirm and '
+                              'stop the alarm.'
+                          : 'Take a selfie to confirm and stop the alarm.',
                       style: AppTypography.caption,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.md),
                     GlassButton(
-                      label: 'Take selfie to dismiss',
+                      label:
+                          isMuslim ? 'Take mosque selfie' : 'Take selfie to dismiss',
                       filled: true,
                       loading: _capturing,
                       onPressed: takeSelfie,

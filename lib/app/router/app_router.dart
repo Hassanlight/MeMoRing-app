@@ -6,18 +6,24 @@ import 'package:go_router/go_router.dart';
 import 'package:memoring/features/alert/presentation/full_screen_alert.dart';
 import 'package:memoring/features/analytics/presentation/analytics_screen.dart';
 import 'package:memoring/features/assistant/presentation/chat_screen.dart';
+import 'package:memoring/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:memoring/features/reminders/presentation/home_screen.dart';
 import 'package:memoring/features/reminders/presentation/reminder_detail_screen.dart';
 import 'package:memoring/features/settings/presentation/settings_screen.dart';
+
+/// Where the app opens — set by main() before the router is built ('/onboarding'
+/// on first run, otherwise '/').
+String appInitialLocation = '/';
 
 /// The app's single router instance.
 final GoRouter appRouter = _buildRouter();
 
 GoRouter _buildRouter() {
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: appInitialLocation,
     routes: [
       GoRoute(path: '/', builder: (_, __) => const ChatScreen()),
+      GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
       GoRoute(path: '/reminders', builder: (_, __) => const HomeScreen()),
       GoRoute(
         path: '/reminder/:id',

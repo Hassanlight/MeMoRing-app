@@ -29,6 +29,8 @@ dependencies:
   image_picker: ^1.1.2
   # On-device persistence (JSON file) + image storage location
   path_provider: ^2.1.4
+  # Offline prayer-time calculation (no network, no location service needed)
+  adhan: ^2.0.0
 
 dev_dependencies:
   flutter_test:
