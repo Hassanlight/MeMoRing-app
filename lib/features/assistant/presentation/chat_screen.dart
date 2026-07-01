@@ -17,6 +17,7 @@ import 'package:memoring/features/assistant/domain/chat_message.dart';
 import 'package:memoring/features/assistant/presentation/chat_controller.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/presentation/widgets/reminder_card.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -30,9 +31,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _scroll = ScrollController();
   final _picker = ImagePicker();
   final _inputFocus = FocusNode();
+  final SpeechToText _speech = SpeechToText();
   String? _pendingImage;
   ReminderIntensity _intensity = ReminderIntensity.low;
   bool _busy = false;
+  bool _listening = false;
 
   @override
   void dispose() {
@@ -79,6 +82,42 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollToEnd();
     // Keep the keyboard up so the next reminder can be typed immediately.
     if (mounted) _inputFocus.requestFocus();
+  }
+
+  Future<void> _toggleMic() async {
+    if (_listening) {
+      await _speech.stop();
+      if (mounted) setState(() => _listening = false);
+      return;
+    }
+    final available = await _speech.initialize(
+      onStatus: (s) {
+        if ((s == 'done' || s == 'notListening') && mounted) {
+          setState(() => _listening = false);
+        }
+      },
+      onError: (_) {
+        if (mounted) setState(() => _listening = false);
+      },
+    );
+    if (!available) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Voice input needs microphone permission')),
+        );
+      }
+      return;
+    }
+    setState(() => _listening = true);
+    _inputFocus.requestFocus();
+    await _speech.listen(
+      onResult: (r) {
+        _input.text = r.recognizedWords;
+        _input.selection =
+            TextSelection.collapsed(offset: _input.text.length);
+      },
+    );
   }
 
   Future<void> _attach() async {
@@ -159,6 +198,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               pendingImage: _pendingImage,
               intensity: _intensity,
               onIntensity: (i) => setState(() => _intensity = i),
+              listening: _listening,
+              onMic: _toggleMic,
               busy: _busy,
               onAttach: _attach,
               onClearImage: () => setState(() => _pendingImage = null),
@@ -312,6 +353,8 @@ class _InputBar extends StatelessWidget {
     required this.pendingImage,
     required this.intensity,
     required this.onIntensity,
+    required this.listening,
+    required this.onMic,
     required this.busy,
     required this.onAttach,
     required this.onClearImage,
@@ -323,6 +366,8 @@ class _InputBar extends StatelessWidget {
   final String? pendingImage;
   final ReminderIntensity intensity;
   final ValueChanged<ReminderIntensity> onIntensity;
+  final bool listening;
+  final VoidCallback onMic;
   final bool busy;
   final VoidCallback onAttach;
   final VoidCallback onClearImage;
@@ -406,6 +451,14 @@ class _InputBar extends StatelessWidget {
                 icon: const Icon(Icons.add_photo_alternate_outlined,
                     color: AppColors.mutedWhite),
                 tooltip: 'Attach photo',
+              ),
+              IconButton(
+                onPressed: onMic,
+                icon: Icon(
+                  listening ? Icons.mic : Icons.mic_none,
+                  color: listening ? AppColors.dangerRed : AppColors.mutedWhite,
+                ),
+                tooltip: listening ? 'Stop listening' : 'Speak a reminder',
               ),
               Expanded(
                 child: TextField(
