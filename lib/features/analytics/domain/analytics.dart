@@ -13,6 +13,7 @@ final class AnalyticsSummary {
     required this.withPhoto,
     required this.byIntensity,
     required this.topTopics,
+    required this.prayerLog,
   });
 
   final int total;
@@ -24,6 +25,9 @@ final class AnalyticsSummary {
 
   /// Most frequent subject words — "what you remind yourself about most".
   final List<MapEntry<String, int>> topTopics;
+
+  /// Completed prayers (most recent first), each with its confirmation photo.
+  final List<Reminder> prayerLog;
 
   int get completionPercent => total == 0 ? 0 : ((completed / total) * 100).round();
 
@@ -67,6 +71,12 @@ AnalyticsSummary computeAnalytics(List<Reminder> reminders) {
   final topTopics = counts.entries.toList()
     ..sort((a, b) => b.value.compareTo(a.value));
 
+  final prayerLog = reminders
+      .where((r) => r.id.startsWith('prayer_') && r.isCompleted)
+      .toList()
+    ..sort((a, b) =>
+        (b.completedAt ?? b.fireAt).compareTo(a.completedAt ?? a.fireAt));
+
   return AnalyticsSummary(
     total: reminders.length,
     completed: completed,
@@ -75,5 +85,6 @@ AnalyticsSummary computeAnalytics(List<Reminder> reminders) {
     withPhoto: withPhoto,
     byIntensity: byIntensity,
     topTopics: topTopics.take(8).toList(),
+    prayerLog: prayerLog,
   );
 }

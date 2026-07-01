@@ -8,6 +8,9 @@ import 'package:memoring/app/theme/app_colors.dart';
 import 'package:memoring/app/theme/app_spacing.dart';
 import 'package:memoring/app/theme/app_typography.dart';
 import 'package:memoring/core/widgets/glass_card.dart';
+import 'package:memoring/features/onboarding/domain/user_profile.dart';
+import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
+import 'package:memoring/features/prayer/presentation/prayer_providers.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -19,6 +22,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool? _notifsOn;
+  UserProfile? _profile;
 
   @override
   void initState() {
@@ -28,7 +32,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _refresh() async {
     final on = await ref.read(notificationServiceProvider).notificationsAllowed();
-    if (mounted) setState(() => _notifsOn = on);
+    final profile = await ref.read(profileRepositoryProvider).load();
+    if (mounted) {
+      setState(() {
+        _notifsOn = on;
+        _profile = profile;
+      });
+    }
+  }
+
+  Future<void> _updateProfile(UserProfile updated) async {
+    await ref.read(profileRepositoryProvider).save(updated);
+    ref.invalidate(profileProvider);
+    await ref.read(prayerServiceProvider).sync(updated);
+    if (mounted) setState(() => _profile = updated);
   }
 
   void _snack(String msg) {
@@ -110,6 +127,63 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onTap: _refresh,
             ),
 
+            if (_profile?.isMuslim ?? false) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Text('Prayer reminders', style: AppTypography.caption),
+              const SizedBox(height: AppSpacing.sm),
+              GlassCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.mosque_outlined,
+                            color: AppColors.mutedWhite, size: 20),
+                        const SizedBox(width: AppSpacing.md),
+                        const Expanded(
+                          child: Text('Prayer times (Fajr–Isha)',
+                              style: AppTypography.bodyMedium),
+                        ),
+                        Switch(
+                          value: _profile!.prayerReminders,
+                          activeColor: AppColors.shinyWhite,
+                          onChanged: (v) => _updateProfile(
+                            _profile!.copyWith(
+                              prayerReminders: v,
+                              prayerSelfie: v && _profile!.prayerSelfie,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_profile!.prayerReminders) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      Text('Confirm each prayer', style: AppTypography.caption),
+                      const SizedBox(height: AppSpacing.sm),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: [
+                          _PrayerChoice(
+                            label: 'Just ring',
+                            selected: !_profile!.prayerSelfie,
+                            onTap: () => _updateProfile(
+                                _profile!.copyWith(prayerSelfie: false)),
+                          ),
+                          _PrayerChoice(
+                            label: 'Selfie at mosque',
+                            selected: _profile!.prayerSelfie,
+                            onTap: () => _updateProfile(
+                                _profile!.copyWith(prayerSelfie: true)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: AppSpacing.lg),
             const GlassCard(
               child: Row(
@@ -172,6 +246,39 @@ class _StatusRow extends StatelessWidget {
         const Spacer(),
         Text(text, style: AppTypography.caption.copyWith(color: color)),
       ],
+    );
+  }
+}
+
+class _PrayerChoice extends StatelessWidget {
+  const _PrayerChoice({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.glassTintStrong : AppColors.glassTint,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: Text(
+          label,
+          style: AppTypography.caption.copyWith(
+            color: selected ? AppColors.shinyWhite : AppColors.mutedWhite,
+          ),
+        ),
+      ),
     );
   }
 }

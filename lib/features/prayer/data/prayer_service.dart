@@ -43,16 +43,22 @@ class PrayerService {
       return;
     }
 
-    // Prune past prayer reminders so the list stays clean.
+    // Prune only past prayers the user MISSED; keep completed ones as history
+    // (their selfie photos power the prayer log in Insights).
     final now = DateTime.now();
+    final completedIds = <String>{};
     for (final r in existing) {
-      if (r.fireAt.isBefore(now)) {
+      if (r.isCompleted) {
+        completedIds.add(r.id);
+      } else if (r.fireAt.isBefore(now)) {
         await _repo.remove(r.id);
       }
     }
 
     final params = CalculationMethod.qatar.getParameters()
       ..madhab = Madhab.shafi;
+    final intensity =
+        profile.prayerSelfie ? ReminderIntensity.high : ReminderIntensity.medium;
 
     for (var dayOffset = 0; dayOffset <= 1; dayOffset++) {
       final date = DateTime.now().add(Duration(days: dayOffset));
@@ -71,14 +77,16 @@ class PrayerService {
       for (final entry in byName.entries) {
         final fireAt = entry.value;
         if (!fireAt.isAfter(now)) continue;
+        final id = 'prayer_${entry.key}_$ymd';
+        if (completedIds.contains(id)) continue; // already done — keep history
         final reminder = Reminder(
-          id: 'prayer_${entry.key}_$ymd',
+          id: id,
           text: '${_names[entry.key]} prayer',
           createdAt: now,
           fireAt: fireAt,
           type: ReminderType.short,
           recurrence: const Recurrence.none(),
-          intensity: ReminderIntensity.medium,
+          intensity: intensity,
         );
         await _repo.update(reminder); // upsert by id
         await _notifications.schedule(reminder);

@@ -1,6 +1,7 @@
 /// Full-screen takeover shown when a reminder fires.
 /// - low/medium: Snooze / Done / Dismiss (all stop the ringing).
-/// - high: can ONLY be dismissed by taking a selfie to confirm.
+/// - high: keeps ringing until the user takes a photo (a selfie at a mosque for
+///   Muslim users) and taps Submit. Camera opens directly.
 library;
 
 import 'dart:io';
@@ -34,7 +35,10 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
     duration: const Duration(milliseconds: 280),
   )..forward();
   final _picker = ImagePicker();
+
+  String? _shotPath; // captured, not yet submitted
   bool _capturing = false;
+  bool _autoOpened = false;
 
   @override
   void dispose() {
@@ -50,6 +54,35 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
     return null;
   }
 
+  Future<void> _openCamera(bool selfie) async {
+    setState(() => _capturing = true);
+    try {
+      final shot = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice:
+            selfie ? CameraDevice.front : CameraDevice.rear,
+        imageQuality: 70,
+      );
+      if (shot == null) {
+        if (mounted) setState(() => _capturing = false);
+        return;
+      }
+      final saved = await persistImage(shot.path);
+      if (mounted) {
+        setState(() {
+          _shotPath = saved;
+          _capturing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _capturing = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Camera error: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final reminder = _find();
@@ -60,36 +93,23 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
     final isHigh = reminder.intensity == ReminderIntensity.high;
     final isMuslim = ref.watch(profileProvider).valueOrNull?.isMuslim ?? false;
 
+    // Ring + open the camera straight away for photo-confirm reminders.
+    if (isHigh && !_autoOpened) {
+      _autoOpened = true;
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _openCamera(isMuslim));
+    }
+
     Future<void> stopAndPop(Future<void> Function() action) async {
       await controller.stopAlert(reminder.id);
       await action();
       if (context.mounted) context.pop();
     }
 
-    Future<void> takeSelfie() async {
-      setState(() => _capturing = true);
-      try {
-        final shot = await _picker.pickImage(
-          source: ImageSource.camera,
-          preferredCameraDevice: CameraDevice.front,
-          imageQuality: 70,
-        );
-        if (shot == null) {
-          if (mounted) setState(() => _capturing = false);
-          return;
-        }
-        final saved = await persistImage(shot.path);
-        await controller.stopAlert(reminder.id);
-        await controller.complete(reminder.copyWith(imagePath: () => saved));
-        if (context.mounted) context.pop();
-      } catch (e) {
-        if (mounted) {
-          setState(() => _capturing = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Camera error: $e')),
-          );
-        }
-      }
+    Future<void> submit() async {
+      await controller.stopAlert(reminder.id);
+      await controller.complete(reminder.copyWith(imagePath: () => _shotPath));
+      if (context.mounted) context.pop();
     }
 
     return Scaffold(
@@ -117,79 +137,117 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  if (reminder.imagePath != null &&
-                      File(reminder.imagePath!).existsSync()) ...[
+                  if (_shotPath != null)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-                      child: Image.file(
-                        File(reminder.imagePath!),
-                        height: 200,
-                        fit: BoxFit.cover,
-                      ),
+                      child: Image.file(File(_shotPath!),
+                          height: 220, fit: BoxFit.cover),
+                    )
+                  else if (reminder.imagePath != null &&
+                      File(reminder.imagePath!).existsSync())
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      child: Image.file(File(reminder.imagePath!),
+                          height: 200, fit: BoxFit.cover),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
-                  ],
-                  Text(
-                    reminder.text,
-                    style: AppTypography.alert,
-                    textAlign: TextAlign.center,
-                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(reminder.text,
+                      style: AppTypography.alert, textAlign: TextAlign.center),
                   const SizedBox(height: AppSpacing.lg),
-                  Text(formatWhen(reminder.fireAt), style: AppTypography.caption),
+                  Text(formatWhen(reminder.fireAt),
+                      style: AppTypography.caption),
                   const Spacer(),
-                  if (isHigh) ...[
-                    Text(
-                      isMuslim
-                          ? 'Take a selfie in front of a mosque to confirm and '
-                              'stop the alarm.'
-                          : 'Take a selfie to confirm and stop the alarm.',
-                      style: AppTypography.caption,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    GlassButton(
-                      label:
-                          isMuslim ? 'Take mosque selfie' : 'Take selfie to dismiss',
-                      filled: true,
-                      loading: _capturing,
-                      onPressed: takeSelfie,
-                    ),
-                  ] else ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GlassButton(
-                            label: 'Snooze',
-                            onPressed: () => stopAndPop(
-                              () => controller.snooze(
-                                  reminder, const Duration(minutes: 15)),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: GlassButton(
-                            label: 'Done',
-                            filled: true,
-                            onPressed: () =>
-                                stopAndPop(() => controller.complete(reminder)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    TextButton(
-                      onPressed: () => stopAndPop(() async {}),
-                      child: const Text('Dismiss',
-                          style: TextStyle(color: AppColors.mutedWhite)),
-                    ),
-                  ],
+                  if (isHigh)
+                    _photoActions(reminder, isMuslim, submit)
+                  else
+                    _ringActions(controller, reminder, stopAndPop),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _photoActions(
+    Reminder reminder,
+    bool isMuslim,
+    Future<void> Function() submit,
+  ) {
+    if (_shotPath == null) {
+      return Column(
+        children: [
+          Text(
+            isMuslim
+                ? 'Take a selfie in front of a mosque to stop the alarm.'
+                : 'Take a photo to confirm and stop the alarm.',
+            style: AppTypography.caption,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          GlassButton(
+            label: 'Open camera',
+            filled: true,
+            loading: _capturing,
+            onPressed: () => _openCamera(isMuslim),
+          ),
+        ],
+      );
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: GlassButton(
+            label: 'Retake',
+            onPressed: () {
+              setState(() => _shotPath = null);
+              _openCamera(isMuslim);
+            },
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: GlassButton(label: 'Submit', filled: true, onPressed: submit),
+        ),
+      ],
+    );
+  }
+
+  Widget _ringActions(
+    RemindersController controller,
+    Reminder reminder,
+    Future<void> Function(Future<void> Function()) stopAndPop,
+  ) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: GlassButton(
+                label: 'Snooze',
+                onPressed: () => stopAndPop(
+                  () => controller.snooze(reminder, const Duration(minutes: 15)),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: GlassButton(
+                label: 'Done',
+                filled: true,
+                onPressed: () => stopAndPop(() => controller.complete(reminder)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        TextButton(
+          onPressed: () => stopAndPop(() async {}),
+          child: const Text('Dismiss',
+              style: TextStyle(color: AppColors.mutedWhite)),
+        ),
+      ],
     );
   }
 }

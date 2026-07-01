@@ -26,6 +26,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String _ageBand = '';
   Religion _religion = Religion.undisclosed;
   bool _prayer = false;
+  bool _prayerSelfie = false;
   bool _saving = false;
 
   static const _ageBands = ['Under 18', '18–30', '31–50', '50+'];
@@ -38,11 +39,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _finish() async {
     setState(() => _saving = true);
+    final prayerOn = _religion == Religion.muslim && _prayer;
     final profile = UserProfile(
       name: _name.text.trim(),
       ageBand: _ageBand,
       religion: _religion,
-      prayerReminders: _religion == Religion.muslim && _prayer,
+      prayerReminders: prayerOn,
+      prayerSelfie: prayerOn && _prayerSelfie,
     );
     await ref.read(profileRepositoryProvider).save(profile);
     ref.invalidate(profileProvider);
@@ -149,6 +152,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ],
                 ),
               ),
+              if (_prayer) ...[
+                const SizedBox(height: AppSpacing.md),
+                Text('How to confirm each prayer', style: AppTypography.caption),
+                const SizedBox(height: AppSpacing.sm),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    _Choice(
+                      label: 'Just ring',
+                      selected: !_prayerSelfie,
+                      onTap: () => setState(() => _prayerSelfie = false),
+                    ),
+                    _Choice(
+                      label: 'Selfie at mosque',
+                      selected: _prayerSelfie,
+                      onTap: () => setState(() => _prayerSelfie = true),
+                    ),
+                  ],
+                ),
+              ],
             ],
 
             const SizedBox(height: AppSpacing.xxl),

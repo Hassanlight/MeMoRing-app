@@ -1,12 +1,15 @@
 /// Insights: what the user reminds themselves about most, and usage stats.
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:memoring/app/theme/app_colors.dart';
 import 'package:memoring/app/theme/app_spacing.dart';
 import 'package:memoring/app/theme/app_typography.dart';
+import 'package:memoring/core/time_format.dart';
 import 'package:memoring/core/widgets/glass_card.dart';
 import 'package:memoring/features/analytics/domain/analytics.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
@@ -101,6 +104,16 @@ class AnalyticsScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
+                if (a.prayerLog.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  Text('Prayer log', style: AppTypography.caption),
+                  const SizedBox(height: AppSpacing.md),
+                  for (final p in a.prayerLog)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: _PrayerLogRow(reminder: p),
+                    ),
+                ],
               ],
             );
           },
@@ -172,6 +185,47 @@ class _LevelRow extends StatelessWidget {
         const Spacer(),
         Text('$count', style: AppTypography.bodyMedium),
       ],
+    );
+  }
+}
+
+class _PrayerLogRow extends StatelessWidget {
+  const _PrayerLogRow({required this.reminder});
+  final Reminder reminder;
+
+  @override
+  Widget build(BuildContext context) {
+    final when = reminder.completedAt ?? reminder.fireAt;
+    final hasPhoto =
+        reminder.imagePath != null && File(reminder.imagePath!).existsSync();
+    return GlassCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Row(
+        children: [
+          if (hasPhoto)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppSpacing.md),
+              child: Image.file(File(reminder.imagePath!),
+                  width: 52, height: 52, fit: BoxFit.cover),
+            )
+          else
+            const Icon(Icons.mosque_outlined,
+                color: AppColors.mutedWhite, size: 28),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(reminder.text, style: AppTypography.bodyMedium),
+                const SizedBox(height: AppSpacing.xs),
+                Text(formatWhen(when), style: AppTypography.caption),
+              ],
+            ),
+          ),
+          const Icon(Icons.check_circle,
+              color: AppColors.shortTermAccent, size: 18),
+        ],
+      ),
     );
   }
 }

@@ -10,6 +10,7 @@ final class UserProfile {
     this.ageBand = '',
     this.religion = Religion.undisclosed,
     this.prayerReminders = false,
+    this.prayerSelfie = false,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
@@ -18,12 +19,16 @@ final class UserProfile {
         religion: Religion.values
             .byName(json['religion'] as String? ?? 'undisclosed'),
         prayerReminders: json['prayerReminders'] as bool? ?? false,
+        prayerSelfie: json['prayerSelfie'] as bool? ?? false,
       );
 
   final String name;
   final String ageBand;
   final Religion religion;
   final bool prayerReminders;
+
+  /// How prayer alerts are confirmed: true = selfie at a mosque, false = just ring.
+  final bool prayerSelfie;
 
   bool get isMuslim => religion == Religion.muslim;
 
@@ -32,6 +37,7 @@ final class UserProfile {
         'ageBand': ageBand,
         'religion': religion.name,
         'prayerReminders': prayerReminders,
+        'prayerSelfie': prayerSelfie,
       };
 
   UserProfile copyWith({
@@ -39,11 +45,13 @@ final class UserProfile {
     String? ageBand,
     Religion? religion,
     bool? prayerReminders,
+    bool? prayerSelfie,
   }) =>
       UserProfile(
         name: name ?? this.name,
         ageBand: ageBand ?? this.ageBand,
         religion: religion ?? this.religion,
         prayerReminders: prayerReminders ?? this.prayerReminders,
+        prayerSelfie: prayerSelfie ?? this.prayerSelfie,
       );
 }
