@@ -63,14 +63,6 @@ jobs:
           cp ci/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           echo "applied manifest:"; cat android/app/src/main/AndroidManifest.xml
 
-      # Bundle the alarm tone as an Android raw resource (res/raw/alarm.wav) so
-      # the alert has a guaranteed loud sound independent of device defaults.
-      - name: Bundle alarm sound
-        run: |
-          mkdir -p android/app/src/main/res/raw
-          cp ci/alarm.wav android/app/src/main/res/raw/alarm.wav
-          ls -l android/app/src/main/res/raw
-
       - name: Install dependencies
         run: flutter pub get
 

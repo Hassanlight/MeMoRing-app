@@ -42,13 +42,10 @@ class LocalNotificationService implements NotificationService {
   final FlutterLocalNotificationsPlugin _plugin;
 
   // Channel settings (sound, importance) are locked at creation by Android, so a
-  // new id is used whenever those change.
-  static const String _channelId = 'memoring_alerts_v4';
+  // new id is used whenever those change. Uses the device's default sound on the
+  // ALARM stream (always present — a bundled raw sound was unreliable in release).
+  static const String _channelId = 'memoring_alerts_v5';
   static const String _channelName = 'Reminders';
-
-  // Bundled alarm tone (android/app/src/main/res/raw/alarm.wav).
-  static const AndroidNotificationSound _sound =
-      RawResourceAndroidNotificationSound('alarm');
 
   /// FLAG_INSISTENT — loops the sound until the user acts (rings like an alarm).
   static final Int32List _insistent = Int32List.fromList([4]);
@@ -81,7 +78,6 @@ class LocalNotificationService implements NotificationService {
         description: 'Full-screen reminder alerts',
         importance: Importance.max,
         playSound: true,
-        sound: _sound,
         enableVibration: true,
         audioAttributesUsage: AudioAttributesUsage.alarm,
       ),
@@ -136,7 +132,6 @@ class LocalNotificationService implements NotificationService {
         category: AndroidNotificationCategory.alarm,
         visibility: NotificationVisibility.public,
         playSound: sound,
-        sound: sound ? _sound : null,
         audioAttributesUsage: AudioAttributesUsage.alarm,
         enableVibration: true,
         vibrationPattern: _vibration,
