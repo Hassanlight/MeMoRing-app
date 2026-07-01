@@ -61,16 +61,17 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
         source: ImageSource.camera,
         preferredCameraDevice:
             selfie ? CameraDevice.front : CameraDevice.rear,
-        imageQuality: 70,
+        imageQuality: 60,
+        maxWidth: 1200,
       );
       if (shot == null) {
         if (mounted) setState(() => _capturing = false);
         return;
       }
-      final saved = await persistImage(shot.path);
+      // Show the temp file instantly; copy to permanent storage only on Submit.
       if (mounted) {
         setState(() {
-          _shotPath = saved;
+          _shotPath = shot.path;
           _capturing = false;
         });
       }
@@ -108,7 +109,13 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
 
     Future<void> submit() async {
       await controller.stopAlert(reminder.id);
-      await controller.complete(reminder.copyWith(imagePath: () => _shotPath));
+      var saved = _shotPath;
+      try {
+        if (_shotPath != null) saved = await persistImage(_shotPath!);
+      } catch (_) {
+        // Keep the temp path if the copy fails — still better than nothing.
+      }
+      await controller.complete(reminder.copyWith(imagePath: () => saved));
       if (context.mounted) context.pop();
     }
 

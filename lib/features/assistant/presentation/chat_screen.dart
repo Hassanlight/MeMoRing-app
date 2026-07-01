@@ -32,6 +32,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _picker = ImagePicker();
   final _inputFocus = FocusNode();
   final SpeechToText _speech = SpeechToText();
+  bool? _speechAvailable; // initialized once, then cached
   String? _pendingImage;
   ReminderIntensity _intensity = ReminderIntensity.low;
   bool _busy = false;
@@ -84,13 +85,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (mounted) _inputFocus.requestFocus();
   }
 
-  Future<void> _toggleMic() async {
-    if (_listening) {
-      await _speech.stop();
-      if (mounted) setState(() => _listening = false);
-      return;
-    }
-    final available = await _speech.initialize(
+  Future<bool> _ensureSpeech() async {
+    if (_speechAvailable != null) return _speechAvailable!;
+    _speechAvailable = await _speech.initialize(
       onStatus: (s) {
         if ((s == 'done' || s == 'notListening') && mounted) {
           setState(() => _listening = false);
@@ -100,6 +97,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         if (mounted) setState(() => _listening = false);
       },
     );
+    return _speechAvailable!;
+  }
+
+  Future<void> _toggleMic() async {
+    if (_listening) {
+      await _speech.stop();
+      if (mounted) setState(() => _listening = false);
+      return;
+    }
+    final available = await _ensureSpeech();
     if (!available) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -110,13 +117,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
     setState(() => _listening = true);
-    _inputFocus.requestFocus();
+    // Live partial results + auto-stop after a short pause = responsive.
     await _speech.listen(
       onResult: (r) {
         _input.text = r.recognizedWords;
         _input.selection =
             TextSelection.collapsed(offset: _input.text.length);
       },
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 3),
+      listenOptions: SpeechListenOptions(
+        partialResults: true,
+        listenMode: ListenMode.dictation,
+        cancelOnError: true,
+      ),
     );
   }
 
