@@ -80,30 +80,6 @@ jobs:
           cp ci/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           echo "applied manifest:"; cat android/app/src/main/AndroidManifest.xml
 
-      # Some plugins (e.g. flutter_timezone) compile Kotlin at an older JVM
-      # target than Java, which newer Gradle rejects. A global init script aligns
-      # every module to JVM 17 — DSL-agnostic, no edits to generated files.
-      - name: Align Kotlin JVM target
-        run: |
-          mkdir -p ~/.gradle/init.d
-          printf '%s\n' \
-            'allprojects {' \
-            '  afterEvaluate { project ->' \
-            '    if (project.hasProperty("android")) {' \
-            '      project.android {' \
-            '        compileOptions {' \
-            '          sourceCompatibility JavaVersion.VERSION_17' \
-            '          targetCompatibility JavaVersion.VERSION_17' \
-            '        }' \
-            '      }' \
-            '    }' \
-            '    project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {' \
-            '      kotlinOptions { jvmTarget = "17" }' \
-            '    }' \
-            '  }' \
-            '}' > ~/.gradle/init.d/jvm.gradle
-          cat ~/.gradle/init.d/jvm.gradle
-
       - name: Install dependencies
         run: flutter pub get
 
