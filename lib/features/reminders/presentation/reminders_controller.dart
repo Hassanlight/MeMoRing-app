@@ -60,6 +60,10 @@ class RemindersController {
   ReminderScheduler get _scheduler => _ref.read(schedulerProvider);
   NotificationService get _notifications => _ref.read(notificationServiceProvider);
 
+  /// Warning from the most recent schedule attempt (null = fine). Read by the
+  /// chat after [create] to surface alarm issues to the user.
+  String? lastScheduleWarning;
+
   /// Create a reminder from already-parsed pieces. Returns the new reminder or
   /// a user-safe error.
   Future<Result<Reminder>> create({
@@ -91,7 +95,7 @@ class RemindersController {
       intensity: intensity,
     );
     await _repo.add(reminder);
-    await _notifications.schedule(reminder);
+    lastScheduleWarning = await _notifications.schedule(reminder);
     return Ok(reminder);
   }
 

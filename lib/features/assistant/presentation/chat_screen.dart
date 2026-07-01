@@ -63,10 +63,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _pendingImage = null;
       _busy = true;
     });
-    await ref
-        .read(chatProvider.notifier)
-        .send(text, imagePath: image, intensity: _intensity);
-    if (mounted) setState(() => _busy = false);
+    try {
+      await ref
+          .read(chatProvider.notifier)
+          .send(text, imagePath: image, intensity: _intensity);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Something went wrong: $e')));
+      }
+    } finally {
+      // Always clear busy so the send button can never get stuck spinning.
+      if (mounted) setState(() => _busy = false);
+    }
     _scrollToEnd();
     // Keep the keyboard up so the next reminder can be typed immediately.
     if (mounted) _inputFocus.requestFocus();

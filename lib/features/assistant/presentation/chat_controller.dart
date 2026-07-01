@@ -57,16 +57,20 @@ class ChatController extends Notifier<List<ChatMessage>> {
         ref.read(parserProvider).parse(trimmed, now: DateTime.now());
     switch (outcome) {
       case ParseSuccess(:final reminder):
-        final res = await ref.read(remindersControllerProvider).create(
-              text: reminder.cleanText,
-              fireAt: reminder.fireAt,
-              recurrence: reminder.recurrence,
-              imagePath: imagePath,
-              intensity: intensity,
-            );
+        final ctrl = ref.read(remindersControllerProvider);
+        final res = await ctrl.create(
+          text: reminder.cleanText,
+          fireAt: reminder.fireAt,
+          recurrence: reminder.recurrence,
+          imagePath: imagePath,
+          intensity: intensity,
+        );
         switch (res) {
           case Ok(:final value):
             _append(ChatMessage.created(value));
+            if (ctrl.lastScheduleWarning != null) {
+              _append(ChatMessage.assistant('⚠️ ${ctrl.lastScheduleWarning}'));
+            }
           case Err(:final message):
             _append(ChatMessage.assistant(message));
         }
@@ -84,16 +88,20 @@ class ChatController extends Notifier<List<ChatMessage>> {
     String? imagePath,
     ReminderIntensity intensity,
   ) async {
-    final res = await ref.read(remindersControllerProvider).create(
-          text: text,
-          fireAt: fireAt,
-          recurrence: const Recurrence.none(),
-          imagePath: imagePath,
-          intensity: intensity,
-        );
+    final ctrl = ref.read(remindersControllerProvider);
+    final res = await ctrl.create(
+      text: text,
+      fireAt: fireAt,
+      recurrence: const Recurrence.none(),
+      imagePath: imagePath,
+      intensity: intensity,
+    );
     switch (res) {
       case Ok(:final value):
         _append(ChatMessage.created(value));
+        if (ctrl.lastScheduleWarning != null) {
+          _append(ChatMessage.assistant('⚠️ ${ctrl.lastScheduleWarning}'));
+        }
       case Err(:final message):
         _append(ChatMessage.assistant(message));
     }

@@ -17,7 +17,9 @@ abstract interface class NotificationService {
 
   Future<bool> requestPermission();
 
-  Future<void> schedule(Reminder reminder);
+  /// Schedules the alert. Returns null on success, or a human-readable warning
+  /// if it had to fall back / failed (so the UI can tell the user).
+  Future<String?> schedule(Reminder reminder);
 
   Future<void> cancel(String id);
 
@@ -161,8 +163,8 @@ class LocalNotificationService implements NotificationService {
   }
 
   /// Schedules with exact timing; falls back to inexact if the device blocks
-  /// exact alarms, so a reminder is NEVER silently dropped.
-  Future<void> _scheduleAt({
+  /// exact alarms. Never throws — returns null on success or a warning string.
+  Future<String?> _scheduleAt({
     required int id,
     required String title,
     required String body,
@@ -184,16 +186,23 @@ class LocalNotificationService implements NotificationService {
 
     try {
       await run(AndroidScheduleMode.exactAllowWhileIdle);
+      return null;
     } catch (_) {
-      // Exact alarms blocked on this device → still schedule (may fire late).
-      await run(AndroidScheduleMode.inexactAllowWhileIdle);
+      // Exact alarms blocked → still schedule, but warn it may fire late.
+      try {
+        await run(AndroidScheduleMode.inexactAllowWhileIdle);
+        return 'Exact alarms are off, so timing may be approximate. Turn on '
+            '"Alarms & reminders" for Memoring in system settings.';
+      } catch (e) {
+        return 'Could not set the alarm: $e';
+      }
     }
   }
 
   @override
-  Future<void> schedule(Reminder reminder) async {
-    if (!reminder.isActive || reminder.isCompleted) return;
-    await _scheduleAt(
+  Future<String?> schedule(Reminder reminder) async {
+    if (!reminder.isActive || reminder.isCompleted) return null;
+    return _scheduleAt(
       id: _intId(reminder.id),
       title: 'Memoring',
       body: reminder.text,
