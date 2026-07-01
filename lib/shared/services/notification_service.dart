@@ -25,6 +25,13 @@ abstract interface class NotificationService {
 
   /// Fires a sample alert ~5s out so the user can verify sound/permissions.
   Future<void> scheduleTest();
+
+  /// Shows a notification immediately (bypasses alarm scheduling) — isolates the
+  /// display/sound pipeline from alarm-permission/battery issues.
+  Future<void> showNow();
+
+  /// Current OS gate status, so the UI can tell the user what to enable.
+  Future<({bool notificationsEnabled, bool exactAlarms})> diagnostics();
 }
 
 class LocalNotificationService implements NotificationService {
@@ -161,7 +168,8 @@ class LocalNotificationService implements NotificationService {
 
     try {
       await run(AndroidScheduleMode.exactAllowWhileIdle);
-    } on Exception {
+    } catch (_) {
+      // Exact alarms blocked on this device → still schedule (may fire late).
       await run(AndroidScheduleMode.inexactAllowWhileIdle);
     }
   }
@@ -188,6 +196,24 @@ class LocalNotificationService implements NotificationService {
       when: tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5)),
       details: _details(sound: true),
     );
+  }
+
+  @override
+  Future<void> showNow() async {
+    await _plugin.show(
+      990002,
+      'Memoring test',
+      'Instant test alert — you should hear this now.',
+      _details(sound: true),
+    );
+  }
+
+  @override
+  Future<({bool notificationsEnabled, bool exactAlarms})> diagnostics() async {
+    final android = _android;
+    final enabled = await android?.areNotificationsEnabled() ?? true;
+    final exact = await android?.canScheduleExactAlarms() ?? true;
+    return (notificationsEnabled: enabled, exactAlarms: exact);
   }
 
   @override

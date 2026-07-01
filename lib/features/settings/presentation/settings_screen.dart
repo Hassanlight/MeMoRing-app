@@ -1,4 +1,4 @@
-/// Settings — permissions, sound default, and the privacy promise.
+/// Settings — notification diagnostics + tests, and the privacy promise.
 library;
 
 import 'package:flutter/material.dart';
@@ -10,11 +10,44 @@ import 'package:memoring/app/theme/app_typography.dart';
 import 'package:memoring/core/widgets/glass_card.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool? _notifsOn;
+  bool? _exactOn;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
+  }
+
+  Future<void> _refresh() async {
+    final d = await ref.read(notificationServiceProvider).diagnostics();
+    if (mounted) {
+      setState(() {
+        _notifsOn = d.notificationsEnabled;
+        _exactOn = d.exactAlarms;
+      });
+    }
+  }
+
+  void _snack(String msg) {
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(msg)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final notifications = ref.read(notificationServiceProvider);
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -27,55 +60,63 @@ class SettingsScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.screen),
           children: [
+            Text('Notification status', style: AppTypography.caption),
+            const SizedBox(height: AppSpacing.sm),
             GlassCard(
-              onTap: () async {
-                final granted = await ref
-                    .read(notificationServiceProvider)
-                    .requestPermission();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(granted
-                          ? 'Notifications enabled'
-                          : 'Notifications are off — enable them in system settings'),
-                    ),
-                  );
-                }
-              },
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.notifications_active_outlined,
-                      color: AppColors.mutedWhite, size: 20),
-                  const SizedBox(width: AppSpacing.md),
-                  Text('Notification permission', style: AppTypography.bodyMedium),
-                  const Spacer(),
-                  const Icon(Icons.chevron_right, color: AppColors.mutedWhite),
+                  _StatusRow(label: 'Notifications allowed', value: _notifsOn),
+                  const SizedBox(height: AppSpacing.md),
+                  _StatusRow(label: 'Exact alarms allowed', value: _exactOn),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    (_notifsOn == false || _exactOn == false)
+                        ? 'Some permissions are off — timed alerts may not fire. '
+                            'Tap "Grant permissions", then re-check.'
+                        : 'All set. If a timed alert is late, turn off battery '
+                            'optimization for Memoring in system settings.',
+                    style: AppTypography.caption,
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            GlassCard(
+
+            _ActionTile(
+              icon: Icons.verified_user_outlined,
+              label: 'Grant permissions',
               onTap: () async {
-                await ref.read(notificationServiceProvider).scheduleTest();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Test alert in 5 seconds — lock or background the app'),
-                    ),
-                  );
-                }
+                await notifications.requestPermission();
+                await _refresh();
+                _snack('Re-checked permissions');
               },
-              child: const Row(
-                children: [
-                  Icon(Icons.notifications_outlined,
-                      color: AppColors.mutedWhite, size: 20),
-                  SizedBox(width: AppSpacing.md),
-                  Text('Send a test alert', style: AppTypography.bodyMedium),
-                  Spacer(),
-                  Icon(Icons.play_arrow, color: AppColors.mutedWhite),
-                ],
-              ),
             ),
+            const SizedBox(height: AppSpacing.md),
+            _ActionTile(
+              icon: Icons.notifications_active_outlined,
+              label: 'Test now (instant)',
+              onTap: () async {
+                await notifications.showNow();
+                _snack('Sent an instant test notification');
+              },
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _ActionTile(
+              icon: Icons.timer_outlined,
+              label: 'Test in 5 seconds',
+              onTap: () async {
+                await notifications.scheduleTest();
+                _snack('Test alert in 5s — lock or background the app');
+              },
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _ActionTile(
+              icon: Icons.refresh,
+              label: 'Re-check status',
+              onTap: _refresh,
+            ),
+
             const SizedBox(height: AppSpacing.lg),
             const GlassCard(
               child: Row(
@@ -113,6 +154,57 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _StatusRow extends StatelessWidget {
+  const _StatusRow({required this.label, required this.value});
+  final String label;
+  final bool? value;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, color, text) = switch (value) {
+      true => (Icons.check_circle, AppColors.shortTermAccent, 'On'),
+      false => (Icons.cancel, AppColors.dangerRed, 'Off'),
+      null => (Icons.help_outline, AppColors.mutedWhite, '—'),
+    };
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: AppSpacing.md),
+        Text(label, style: AppTypography.bodyMedium),
+        const Spacer(),
+        Text(text, style: AppTypography.caption.copyWith(color: color)),
+      ],
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final Future<void> Function() onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.mutedWhite, size: 20),
+          const SizedBox(width: AppSpacing.md),
+          Text(label, style: AppTypography.bodyMedium),
+          const Spacer(),
+          const Icon(Icons.chevron_right, color: AppColors.mutedWhite),
+        ],
       ),
     );
   }
