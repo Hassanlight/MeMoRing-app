@@ -8,22 +8,25 @@ import 'package:memoring/app/router/app_router.dart';
 import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
 import 'package:memoring/features/prayer/presentation/prayer_providers.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Timezone-correct scheduling (DST-safe). Device-timezone auto-detection was
-  // removed to keep the Android build toolchain-clean; default to the launch
-  // market (Qatar) and fall back to UTC.
-  // TODO(scheduler): restore dynamic device-timezone detection before
-  // multi-region release.
+  // Timezone-correct scheduling (DST-safe). Auto-detect the device's IANA zone
+  // so alarms fire at the right local time in any region; fall back sensibly.
   tzdata.initializeTimeZones();
   try {
-    tz.setLocalLocation(tz.getLocation('Asia/Qatar'));
+    final name = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(name));
   } on Object {
-    tz.setLocalLocation(tz.getLocation('UTC'));
+    try {
+      tz.setLocalLocation(tz.getLocation('Asia/Qatar'));
+    } on Object {
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    }
   }
 
   final container = ProviderContainer();
