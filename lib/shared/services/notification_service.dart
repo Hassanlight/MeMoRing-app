@@ -30,8 +30,8 @@ abstract interface class NotificationService {
   /// display/sound pipeline from alarm-permission/battery issues.
   Future<void> showNow();
 
-  /// Current OS gate status, so the UI can tell the user what to enable.
-  Future<({bool notificationsEnabled, bool exactAlarms})> diagnostics();
+  /// Whether the OS currently allows this app to post notifications.
+  Future<bool> notificationsAllowed();
 }
 
 class LocalNotificationService implements NotificationService {
@@ -209,12 +209,8 @@ class LocalNotificationService implements NotificationService {
   }
 
   @override
-  Future<({bool notificationsEnabled, bool exactAlarms})> diagnostics() async {
-    final android = _android;
-    final enabled = await android?.areNotificationsEnabled() ?? true;
-    final exact = await android?.canScheduleExactAlarms() ?? true;
-    return (notificationsEnabled: enabled, exactAlarms: exact);
-  }
+  Future<bool> notificationsAllowed() async =>
+      await _android?.areNotificationsEnabled() ?? true;
 
   @override
   Future<void> cancel(String id) => _plugin.cancel(_intId(id));

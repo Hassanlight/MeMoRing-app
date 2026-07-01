@@ -19,7 +19,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool? _notifsOn;
-  bool? _exactOn;
 
   @override
   void initState() {
@@ -28,13 +27,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _refresh() async {
-    final d = await ref.read(notificationServiceProvider).diagnostics();
-    if (mounted) {
-      setState(() {
-        _notifsOn = d.notificationsEnabled;
-        _exactOn = d.exactAlarms;
-      });
-    }
+    final on = await ref.read(notificationServiceProvider).notificationsAllowed();
+    if (mounted) setState(() => _notifsOn = on);
   }
 
   void _snack(String msg) {
@@ -68,14 +62,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   _StatusRow(label: 'Notifications allowed', value: _notifsOn),
                   const SizedBox(height: AppSpacing.md),
-                  _StatusRow(label: 'Exact alarms allowed', value: _exactOn),
-                  const SizedBox(height: AppSpacing.md),
                   Text(
-                    (_notifsOn == false || _exactOn == false)
-                        ? 'Some permissions are off — timed alerts may not fire. '
-                            'Tap "Grant permissions", then re-check.'
-                        : 'All set. If a timed alert is late, turn off battery '
-                            'optimization for Memoring in system settings.',
+                    _notifsOn == false
+                        ? 'Notifications are off — nothing will ring. Tap "Grant '
+                            'permissions" (or enable Memoring in system settings).'
+                        : 'If a timed alert is late or silent: allow "Alarms & '
+                            'reminders", turn off battery optimization for Memoring, '
+                            'and make sure alarm volume is up.',
                     style: AppTypography.caption,
                   ),
                 ],
