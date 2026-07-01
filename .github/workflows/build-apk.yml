@@ -56,6 +56,23 @@ jobs:
             echo "No app Gradle file found"; exit 1
           fi
 
+      # R8 shrinking mangles flutter_local_notifications' Gson types ("Missing
+      # type parameter"), breaking scheduling. Disable minify/shrink for release
+      # and add keep rules as a belt-and-suspenders safeguard.
+      - name: Harden release build (R8 / Gson)
+        run: |
+          set -e
+          cp ci/proguard-rules.pro android/app/proguard-rules.pro
+          KTS=android/app/build.gradle.kts
+          GROOVY=android/app/build.gradle
+          if [ -f "$KTS" ]; then
+            sed -i 's/release {/release {\n            isMinifyEnabled = false\n            isShrinkResources = false\n            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")/' "$KTS"
+            echo "patched $KTS"; sed -n '/buildTypes/,/^}/p' "$KTS"
+          elif [ -f "$GROOVY" ]; then
+            sed -i 's/release {/release {\n            minifyEnabled false\n            shrinkResources false\n            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"/' "$GROOVY"
+            echo "patched $GROOVY"
+          fi
+
       # Replace the default manifest with one that enables full-screen alerts,
       # exact alarms, and reboot rescheduling.
       - name: Apply full-screen-alert manifest
