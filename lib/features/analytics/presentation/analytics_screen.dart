@@ -11,6 +11,7 @@ import 'package:memoring/app/theme/app_spacing.dart';
 import 'package:memoring/app/theme/app_typography.dart';
 import 'package:memoring/core/time_format.dart';
 import 'package:memoring/core/widgets/glass_card.dart';
+import 'package:memoring/features/ads/ad_banner.dart';
 import 'package:memoring/features/analytics/domain/analytics.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
@@ -23,6 +24,7 @@ class AnalyticsScreen extends ConsumerWidget {
     final remindersAsync = ref.watch(remindersProvider);
 
     return Scaffold(
+      bottomNavigationBar: const AdBanner(),
       appBar: AppBar(
         leading: IconButton(
           onPressed: () => context.pop(),

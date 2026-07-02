@@ -29,6 +29,24 @@ Status legend: ✅ done in code/CI · 🟡 you must do it in the store console �
 | Full-screen takeover | ✅ (documented) | iOS never allows OS-level takeover; app shows the full-screen note on tap / when open. This is expected and passes review. |
 | Religion question | ✅ | Optional + on-device only + clear purpose — meets Apple's sensitive-data rules. |
 
+## Monetization (AdMob)
+
+| Item | Status | Notes |
+|---|---|---|
+| SDK integrated | ✅ | `google_mobile_ads` — banner on the reminders list + Insights only. NEVER on the chat (primary surface) or the alarm screen (policy + UX). Fail-safe: offline / no fill / no Google services → zero-height, app unaffected. |
+| Ad IDs | 🟡 | Currently Google's PUBLIC TEST ids. Before release: create an AdMob account, make an app + banner unit, replace `APPLICATION_ID` in `ci/AndroidManifest.xml` and `kBannerAdUnitId` in `lib/features/ads/ad_banner.dart`. Shipping with test ids = no revenue; shipping real ids without an account = crashes. |
+| Privacy impact | 🔴 IMPORTANT | Ads BREAK the pure "no data leaves the device" claim — AdMob collects device identifiers. You must: update the privacy policy (disclose advertising), change Play Data safety to "data collected: device IDs (advertising)", and add Google's UMP consent flow for EU users if you distribute there. The core app data (reminders/photos/religion) still never leaves the device — say exactly that. |
+| Consent (GDPR/UMP) | 🟡 | Required only if distributing in the EEA/UK. Qatar-only distribution: not required. |
+
+## Huawei (AppGallery)
+
+| Item | Status | Notes |
+|---|---|---|
+| App runs without Google services | ✅ mostly | Alarms/notifications = pure Android ✓. Voice uses the device's speech service — on Huawei without Google, it may be unavailable → app already degrades gracefully (mic shows a message; typing works). Photo detection (ML Kit bundled model) generally works without Google services; if it fails it FAILS OPEN (photo accepted) by design. |
+| Ads on Huawei | 🔴 by design | AdMob does NOT serve on Huawei devices (no Google services) — the banner silently doesn't render, app fully functional. To monetize on AppGallery later: integrate Huawei Ads Kit (`huawei_ads` plugin) behind the same fail-safe pattern. Do this only if Huawei traffic matters — two ad SDKs = more size + more privacy disclosures. |
+| AppGallery submission | 🟡 | Create a Huawei Developer account (free), submit the same signed APK/AAB (AppGallery accepts APK). Declare the same privacy answers. Huawei also requires a privacy policy URL. |
+| Push/alarm reliability on Huawei | ⚠️ | Huawei's battery manager is aggressive: users must set Memoring to "Manual manage" in Battery settings for reliable alarms (worth an in-app tip later). |
+
 ## Honest gaps summary
 1. **Play upload signing** — blocked on you creating a keystore + adding 4 secrets (5 minutes; commands above).
 2. **Privacy policy URL** — required by both stores; a single static page is enough.

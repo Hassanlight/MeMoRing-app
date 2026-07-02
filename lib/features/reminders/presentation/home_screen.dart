@@ -8,6 +8,7 @@ import 'package:memoring/app/theme/app_colors.dart';
 import 'package:memoring/app/theme/app_spacing.dart';
 import 'package:memoring/app/theme/app_typography.dart';
 import 'package:memoring/core/widgets/segmented_toggle.dart';
+import 'package:memoring/features/ads/ad_banner.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
 import 'package:memoring/features/reminders/presentation/widgets/reminder_card.dart';
 
@@ -29,6 +30,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final remindersAsync = ref.watch(remindersProvider);
 
     return Scaffold(
+      bottomNavigationBar: const AdBanner(),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.glassTintStrong,
         elevation: 0,
