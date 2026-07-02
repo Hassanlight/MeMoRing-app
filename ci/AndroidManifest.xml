@@ -3,7 +3,11 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <!-- Play policy pattern for alarm apps: SCHEDULE_EXACT_ALARM only up to
+         Android 12 (user-grantable), USE_EXACT_ALARM from Android 13+
+         (auto-granted, restricted to alarm/timer apps — Memoring qualifies). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Photo attachments (camera capture). Gallery uses the system picker. -->

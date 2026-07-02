@@ -91,12 +91,71 @@ jobs:
         run: flutter test
         continue-on-error: true
 
+      # Real release signing for the Play Store. Add these repo secrets to enable:
+      #   MEMORING_KEYSTORE_BASE64 (base64 of the .jks), MEMORING_KEYSTORE_PASSWORD,
+      #   MEMORING_KEY_ALIAS, MEMORING_KEY_PASSWORD.
+      # Without them the build stays test-signed (fine for personal installs,
+      # NOT accepted by Google Play).
+      - name: Configure release signing (if secrets present)
+        env:
+          KS_B64: ${{ secrets.MEMORING_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.MEMORING_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.MEMORING_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.MEMORING_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KS_B64" ]; then
+            echo "No keystore secrets — keeping test signing (not Play-uploadable)."
+            exit 0
+          fi
+          echo "$KS_B64" | base64 -d > android/app/release.jks
+          cat > android/key.properties <<EOF
+          storeFile=release.jks
+          storePassword=$KS_PASS
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASS
+          EOF
+          KTS=android/app/build.gradle.kts
+          python3 - "$KTS" <<'PY'
+          import re, sys
+          p = sys.argv[1]
+          s = open(p).read()
+          s = s.replace('android {', '''val keystoreProperties = java.util.Properties().apply {
+              val f = rootProject.file("key.properties")
+              if (f.exists()) f.inputStream().use { load(it) }
+          }
+          android {''', 1) if 'key.properties' not in s else s
+          s = s.replace('buildTypes {', '''signingConfigs {
+                  create("release") {
+                      storeFile = file(keystoreProperties.getProperty("storeFile") ?: "release.jks")
+                      storePassword = keystoreProperties.getProperty("storePassword")
+                      keyAlias = keystoreProperties.getProperty("keyAlias")
+                      keyPassword = keystoreProperties.getProperty("keyPassword")
+                  }
+              }
+              buildTypes {''', 1)
+          s = s.replace('signingConfig = signingConfigs.getByName("debug")',
+                        'signingConfig = signingConfigs.getByName("release")')
+          open(p, 'w').write(s)
+          PY
+          echo "Release signing configured."
+
       - name: Build release APK
         run: flutter build apk --release
+
+      # Google Play only accepts App Bundles for new apps.
+      - name: Build release AAB (Play Store)
+        run: flutter build appbundle --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: memoring-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: memoring-aab
+          path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error

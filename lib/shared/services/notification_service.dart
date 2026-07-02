@@ -100,11 +100,14 @@ class LocalNotificationService implements NotificationService {
 
     final ios = _plugin.resolvePlatformSpecificImplementation<
         IOSFlutterLocalNotificationsPlugin>();
+    // NOTE: no `critical: true` — Apple critical alerts need a special
+    // entitlement granted by Apple; requesting it unapproved risks rejection.
+    // Time-sensitive interruption level (set on each notification) is the
+    // correct, approval-free channel for reminder alerts.
     final iosGranted = await ios?.requestPermissions(
           alert: true,
           badge: true,
           sound: true,
-          critical: true,
         ) ??
         true;
 
