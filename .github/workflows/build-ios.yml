@@ -47,7 +47,7 @@ jobs:
         run: flutter pub get
 
       - name: Generate iOS app icon
-        run: dart run flutter_launcher_icons -f flutter_launcher_icons-ios.yaml
+        run: dart run flutter_launcher_icons -f icons-ios.yaml
 
       - name: Build iOS (no codesign)
         run: flutter build ios --release --no-codesign

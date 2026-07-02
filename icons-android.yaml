@@ -1,4 +1,4 @@
-# Android launcher icon (run: dart run flutter_launcher_icons -f flutter_launcher_icons-android.yaml)
+# Android launcher icon (run: dart run flutter_launcher_icons -f icons-android.yaml)
 flutter_launcher_icons:
   android: true
   ios: false
