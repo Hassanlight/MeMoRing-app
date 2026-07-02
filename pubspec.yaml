@@ -37,7 +37,7 @@ dependencies:
   google_mlkit_image_labeling: ^0.13.0
   # Monetization — AdMob banners (test IDs until a real AdMob account exists).
   # No-fill/offline/Huawei (no Google services) → banner simply doesn't render.
-  google_mobile_ads: ^6.0.0
+  google_mobile_ads: ^9.0.0
 
 dev_dependencies:
   flutter_test:
