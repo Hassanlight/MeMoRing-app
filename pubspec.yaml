@@ -33,6 +33,8 @@ dependencies:
   adhan: ^2.0.0
   # Voice input — speak a reminder instead of typing
   speech_to_text: ^7.0.0
+  # On-device photo labeling (mosque / prayer-mat check) — offline, best-effort
+  google_mlkit_image_labeling: ^0.13.0
 
 dev_dependencies:
   flutter_test:

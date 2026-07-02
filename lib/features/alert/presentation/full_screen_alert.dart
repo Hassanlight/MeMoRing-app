@@ -16,6 +16,7 @@ import 'package:memoring/app/theme/app_typography.dart';
 import 'package:memoring/core/image_store.dart';
 import 'package:memoring/core/time_format.dart';
 import 'package:memoring/core/widgets/glass_button.dart';
+import 'package:memoring/features/alert/data/photo_verifier.dart';
 import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
@@ -35,10 +36,15 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
     duration: const Duration(milliseconds: 280),
   )..forward();
   final _picker = ImagePicker();
+  final _verifier = PhotoVerifier();
 
   String? _shotPath; // captured, not yet submitted
   bool _capturing = false;
   bool _autoOpened = false;
+  bool _verifying = false;
+  bool _verified = false;
+  String _verifyNote = '';
+  int _failedChecks = 0;
 
   @override
   void dispose() {
@@ -73,7 +79,25 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
         setState(() {
           _shotPath = shot.path;
           _capturing = false;
+          _verifying = selfie; // mosque/mat check applies to prayer selfies
+          _verified = !selfie;
+          _verifyNote = '';
         });
+      }
+      if (selfie) {
+        final check = await _verifier.checkMosqueOrPrayerMat(shot.path);
+        if (mounted) {
+          setState(() {
+            _verifying = false;
+            _verified = check.accepted;
+            if (!check.accepted) {
+              _failedChecks++;
+              _verifyNote = check.seen.isEmpty
+                  ? "Couldn't detect a mosque or prayer mat — retake."
+                  : "Couldn't detect a mosque or prayer mat (saw: ${check.seen}). Retake.";
+            }
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -202,20 +226,42 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
         ],
       );
     }
-    return Row(
+    final canSubmit = !_verifying && (_verified || _failedChecks >= 2);
+    return Column(
       children: [
-        Expanded(
-          child: GlassButton(
-            label: 'Retake',
-            onPressed: () {
-              setState(() => _shotPath = null);
-              _openCamera(isMuslim);
-            },
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: GlassButton(label: 'Submit', filled: true, onPressed: submit),
+        if (_verifying)
+          Text('Checking photo…', style: AppTypography.caption)
+        else if (!_verified && _verifyNote.isNotEmpty)
+          Text(_verifyNote,
+              style: AppTypography.caption
+                  .copyWith(color: AppColors.dangerRed),
+              textAlign: TextAlign.center)
+        else if (_verified && isMuslim)
+          Text('Looks good ✓', style: AppTypography.caption),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: GlassButton(
+                label: 'Retake',
+                onPressed: () {
+                  setState(() => _shotPath = null);
+                  _openCamera(isMuslim);
+                },
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: GlassButton(
+                label: !_verified && _failedChecks >= 2
+                    ? 'Submit anyway'
+                    : 'Submit',
+                filled: true,
+                loading: _verifying,
+                onPressed: canSubmit ? submit : null,
+              ),
+            ),
+          ],
         ),
       ],
     );

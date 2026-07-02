@@ -1,6 +1,8 @@
 /// Memoring entry point. Offline-first; no backend, no accounts.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:memoring/app/app.dart';
@@ -42,6 +44,23 @@ Future<void> main() async {
       child: const MemoringApp(),
     ),
   );
+
+  // While the app is open, take over the screen with the full-screen note the
+  // moment a reminder is due (the OS notification covers locked/background).
+  final alerted = <String>{};
+  Timer.periodic(const Duration(seconds: 10), (_) async {
+    final repo = container.read(reminderRepositoryProvider);
+    final now = DateTime.now();
+    for (final r in await repo.getAll()) {
+      if (!r.isActive || r.isCompleted || alerted.contains(r.id)) continue;
+      final due = r.effectiveFireAt;
+      if (!due.isAfter(now) && now.difference(due) < const Duration(minutes: 2)) {
+        alerted.add(r.id);
+        appRouter.push('/alert/${r.id}');
+        break; // one takeover at a time
+      }
+    }
+  });
 
   // Ask for notification + exact-alarm permission once the UI is up (a resumed
   // activity is required for the system dialog), then make sure every saved
