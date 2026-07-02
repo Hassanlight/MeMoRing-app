@@ -142,18 +142,29 @@ jobs:
           PY
           echo "Release signing configured."
 
-      - name: Build release APK
-        run: flutter build apk --release
+      # Split per CPU architecture — a universal APK ships 3 copies of every
+      # native library; each phone needs exactly one. Also strip Dart debug
+      # symbols out of the binary (kept as a build artifact if ever needed).
+      - name: Build release APKs (split per ABI)
+        run: flutter build apk --release --split-per-abi --split-debug-info=build/symbols
 
-      # Google Play only accepts App Bundles for new apps.
+      # Google Play only accepts App Bundles for new apps. The AAB lets Play
+      # serve each user only their device's slice automatically.
       - name: Build release AAB (Play Store)
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --split-debug-info=build/symbols
 
-      - name: Upload APK
+      - name: Upload APK (64-bit — all modern phones)
         uses: actions/upload-artifact@v4
         with:
           name: memoring-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          if-no-files-found: error
+
+      - name: Upload APK (32-bit — very old phones)
+        uses: actions/upload-artifact@v4
+        with:
+          name: memoring-apk-32bit
+          path: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
           if-no-files-found: error
 
       - name: Upload AAB
