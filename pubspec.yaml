@@ -35,6 +35,8 @@ dependencies:
   speech_to_text: ^7.0.0
   # On-device photo labeling (mosque / prayer-mat check) — offline, best-effort
   google_mlkit_image_labeling: ^0.13.0
+  # On-device face detection — a selfie must contain a real face to stop the alarm
+  google_mlkit_face_detection: ^0.12.0
   # Monetization — AdMob banners (test IDs until a real AdMob account exists).
   # No-fill/offline/Huawei (no Google services) → banner simply doesn't render.
   google_mobile_ads: ^9.0.0

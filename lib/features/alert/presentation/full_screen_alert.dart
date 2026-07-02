@@ -43,6 +43,7 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
   bool _autoOpened = false;
   bool _verifying = false;
   bool _verified = false;
+  bool _faceOk = false;
   String _verifyNote = '';
   int _failedChecks = 0;
 
@@ -79,25 +80,32 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
         setState(() {
           _shotPath = shot.path;
           _capturing = false;
-          _verifying = selfie; // mosque/mat check applies to prayer selfies
-          _verified = !selfie;
+          _verifying = true; // every confirmation photo is verified
+          _verified = false;
           _verifyNote = '';
         });
       }
-      if (selfie) {
-        final check = await _verifier.checkMosqueOrPrayerMat(shot.path);
-        if (mounted) {
-          setState(() {
-            _verifying = false;
-            _verified = check.accepted;
-            if (!check.accepted) {
-              _failedChecks++;
+      // Face is required for ALL selfie-level alarms; prayer selfies also
+      // require the mosque / prayer-mat scene.
+      final check =
+          await _verifier.checkSelfie(shot.path, requireMosque: selfie);
+      if (mounted) {
+        setState(() {
+          _verifying = false;
+          _faceOk = check.faceOk;
+          _verified = check.accepted;
+          if (!check.accepted) {
+            _failedChecks++;
+            if (!check.faceOk) {
+              _verifyNote =
+                  "Couldn't see your face — take a clear selfie of yourself.";
+            } else {
               _verifyNote = check.seen.isEmpty
                   ? "Couldn't detect a mosque or prayer mat — retake."
                   : "Couldn't detect a mosque or prayer mat (saw: ${check.seen}). Retake.";
             }
-          });
-        }
+          }
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -241,7 +249,11 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
         ],
       );
     }
-    final canSubmit = !_verifying && (_verified || _failedChecks >= 2);
+    // A face is ALWAYS required — no bypass. The mosque/scene gate can be
+    // bypassed only after 3 rejected attempts (heuristic model, e.g. an
+    // unusual mosque angle), and even then only with a face in frame.
+    final canSubmit =
+        !_verifying && (_verified || (_faceOk && _failedChecks >= 3));
     return Column(
       children: [
         if (_verifying)
@@ -268,7 +280,7 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: GlassButton(
-                label: !_verified && _failedChecks >= 2
+                label: !_verified && _faceOk && _failedChecks >= 3
                     ? 'Submit anyway'
                     : 'Submit',
                 filled: true,
