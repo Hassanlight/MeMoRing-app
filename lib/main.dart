@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:memoring/app/app.dart';
 import 'package:memoring/app/router/app_router.dart';
+import 'package:memoring/features/alert/presentation/full_screen_alert.dart';
 import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
 import 'package:memoring/features/prayer/presentation/prayer_providers.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
@@ -28,13 +29,18 @@ Future<void> main() async {
   final profile = await container.read(profileRepositoryProvider).load();
   appInitialLocation = profile == null ? '/onboarding' : '/';
 
+  // Push the alert screen exactly once per reminder, no matter how many launch
+  // paths fire (notification tap, full-screen intent, due-checker).
+  void openAlert(String id) {
+    if (activeAlertId == id) return;
+    appRouter.push('/alert/$id');
+  }
+
   final notifications = container.read(notificationServiceProvider);
   await notifications.init(
     onTap: (reminderId) {
       if (reminderId == null || reminderId.isEmpty) return;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        appRouter.push('/alert/$reminderId');
-      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => openAlert(reminderId));
     },
   );
 
@@ -56,7 +62,7 @@ Future<void> main() async {
       final due = r.effectiveFireAt;
       if (!due.isAfter(now) && now.difference(due) < const Duration(minutes: 2)) {
         alerted.add(r.id);
-        appRouter.push('/alert/${r.id}');
+        openAlert(r.id);
         break; // one takeover at a time
       }
     }

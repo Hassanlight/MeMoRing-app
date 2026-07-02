@@ -4,9 +4,11 @@
 ///   Muslim users) and taps Submit. Camera opens directly.
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -20,6 +22,10 @@ import 'package:memoring/features/alert/data/photo_verifier.dart';
 import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
+
+/// The alert currently on screen — used to prevent the same reminder's alert
+/// being pushed twice (notification tap + full-screen-intent launch).
+String? activeAlertId;
 
 class FullScreenAlert extends ConsumerStatefulWidget {
   const FullScreenAlert({required this.id, super.key});
@@ -44,13 +50,35 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
   bool _verifying = false;
   bool _verified = false;
   bool _faceOk = false;
+  bool _submitted = false;
   String _verifyNote = '';
   int _failedChecks = 0;
+  Timer? _vibrateTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    activeAlertId = widget.id;
+  }
 
   @override
   void dispose() {
+    if (activeAlertId == widget.id) activeAlertId = null;
+    _vibrateTimer?.cancel();
     _anim.dispose();
     super.dispose();
+  }
+
+  /// Keeps vibrating until the selfie is submitted — muting the sound with the
+  /// volume keys does not stop this.
+  void _ensureVibration() {
+    _vibrateTimer ??= Timer.periodic(const Duration(milliseconds: 1400), (_) {
+      if (_submitted) {
+        _vibrateTimer?.cancel();
+        return;
+      }
+      HapticFeedback.vibrate();
+    });
   }
 
   Reminder? _find() {
@@ -126,11 +154,52 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
     final isHigh = reminder.intensity == ReminderIntensity.high;
     final isMuslim = ref.watch(profileProvider).valueOrNull?.isMuslim ?? false;
 
-    // Ring + open the camera straight away for photo-confirm reminders.
-    if (isHigh && !_autoOpened) {
-      _autoOpened = true;
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _openCamera(isMuslim));
+    // Already confirmed (e.g. a stale notification was tapped after submit) or
+    // already re-armed to a future time (recurring): never re-run the selfie
+    // flow — show a calm done state instead.
+    final notDueNow = reminder.effectiveFireAt
+        .isAfter(DateTime.now().add(const Duration(minutes: 1)));
+    if (reminder.isCompleted || _submitted || notDueNow) {
+      _vibrateTimer?.cancel();
+      return Scaffold(
+        backgroundColor: AppColors.matteBlack,
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle,
+                    size: 64, color: AppColors.shortTermAccent),
+                const SizedBox(height: AppSpacing.lg),
+                Text('Already confirmed', style: AppTypography.heading),
+                const SizedBox(height: AppSpacing.sm),
+                Text(reminder.text, style: AppTypography.caption),
+                const SizedBox(height: AppSpacing.xl),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                  child: GlassButton(
+                    label: 'Close',
+                    onPressed: () => context.canPop()
+                        ? context.pop()
+                        : context.go('/'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Ring + vibrate + open the camera straight away for photo-confirm alerts.
+    if (isHigh) {
+      _ensureVibration();
+      if (!_autoOpened) {
+        _autoOpened = true;
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => _openCamera(isMuslim));
+      }
     }
 
     Future<void> stopAndPop(Future<void> Function() action) async {
@@ -140,6 +209,8 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
     }
 
     Future<void> submit() async {
+      _submitted = true;
+      _vibrateTimer?.cancel();
       await controller.stopAlert(reminder.id);
       var saved = _shotPath;
       try {
