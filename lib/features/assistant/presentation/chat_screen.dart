@@ -124,17 +124,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
     setState(() => _listening = true);
-    // Live partial results + auto-stop after a short pause = responsive.
+    // Record the whole phrase, then take only the recognizer's FINAL result —
+    // it is re-scored after the speaker finishes and is far more accurate than
+    // the live partial guesses (which looked garbled while typing out).
     await _speech.listen(
       onResult: (r) {
+        if (!r.finalResult) return;
         _input.text = r.recognizedWords;
         _input.selection =
             TextSelection.collapsed(offset: _input.text.length);
+        if (mounted) setState(() => _listening = false);
       },
       listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 2),
+      pauseFor: const Duration(seconds: 4),
       listenOptions: SpeechListenOptions(
-        partialResults: true,
+        partialResults: false,
         listenMode: ListenMode.dictation,
         cancelOnError: true,
       ),
@@ -505,8 +509,13 @@ class _InputBar extends StatelessWidget {
                   onSubmitted: (_) => onSend(),
                   cursorColor: AppColors.shinyWhite,
                   decoration: InputDecoration(
-                    hintText: 'Message Memoring…',
-                    hintStyle: const TextStyle(color: AppColors.mutedWhite),
+                    hintText: listening
+                        ? '🎙 Listening… speak, then pause'
+                        : 'Message Memoring…',
+                    hintStyle: TextStyle(
+                        color: listening
+                            ? AppColors.shortTermAccent
+                            : AppColors.mutedWhite),
                     filled: true,
                     fillColor: AppColors.glassTint,
                     contentPadding: const EdgeInsets.symmetric(
