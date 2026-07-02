@@ -83,6 +83,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Generate launcher icons
+        run: dart run flutter_launcher_icons -f flutter_launcher_icons-android.yaml
+
       - name: Analyze (non-blocking)
         run: flutter analyze
         continue-on-error: true

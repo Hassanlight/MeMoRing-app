@@ -1,0 +1,6 @@
+# iOS app icon (run: dart run flutter_launcher_icons -f flutter_launcher_icons-ios.yaml)
+flutter_launcher_icons:
+  android: false
+  ios: true
+  image_path: assets/brand/icon_1024.png
+  remove_alpha_ios: true

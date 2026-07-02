@@ -1,0 +1,68 @@
+# Builds an UNSIGNED iOS app (manual trigger only — macOS minutes are 10x).
+# The artifact proves iOS compiles and is ready for signing. Installing on a
+# real iPhone / App Store still requires an Apple Developer account.
+name: Build iOS (unsigned)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate iOS platform files
+        run: flutter create --platforms=ios --project-name memoring .
+
+      - name: Remove template test
+        run: rm -f test/widget_test.dart
+
+      # Required usage strings + AdMob app id (Google's PUBLIC TEST id — swap
+      # for a real one before App Store submission).
+      - name: Patch Info.plist
+        run: |
+          P=/usr/libexec/PlistBuddy
+          F=ios/Runner/Info.plist
+          $P -c "Add :NSCameraUsageDescription string Attach photos to reminders and confirm alarms with a selfie." "$F"
+          $P -c "Add :NSMicrophoneUsageDescription string Speak reminders instead of typing." "$F"
+          $P -c "Add :NSSpeechRecognitionUsageDescription string Convert your speech into reminder text." "$F"
+          $P -c "Add :GADApplicationIdentifier string ca-app-pub-3940256099942544~1458002511" "$F"
+          $P -c "Print" "$F" | head -40
+
+      # ML Kit pods need a modern minimum iOS version.
+      - name: Set iOS platform 15.5
+        run: |
+          sed -i '' "s/# platform :ios, '.*'/platform :ios, '15.5'/" ios/Podfile
+          grep "platform :ios" ios/Podfile
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate iOS app icon
+        run: dart run flutter_launcher_icons -f flutter_launcher_icons-ios.yaml
+
+      - name: Build iOS (no codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Package unsigned IPA
+        run: |
+          cd build/ios/iphoneos
+          mkdir Payload
+          cp -r Runner.app Payload/
+          zip -qr memoring-unsigned.ipa Payload
+          ls -lh memoring-unsigned.ipa
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: memoring-ios-unsigned
+          path: build/ios/iphoneos/memoring-unsigned.ipa
+          if-no-files-found: error
