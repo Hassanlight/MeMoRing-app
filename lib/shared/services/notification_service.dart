@@ -118,6 +118,7 @@ class LocalNotificationService implements NotificationService {
     required bool sound,
     ReminderIntensity intensity = ReminderIntensity.low,
     String? imagePath,
+    String bigText = '',
   }) {
     final hasImage = imagePath != null && File(imagePath).existsSync();
     // low = one tone; medium/high = loop the sound until acted on;
@@ -142,13 +143,15 @@ class LocalNotificationService implements NotificationService {
         autoCancel: !ongoing,
         additionalFlags: loops ? _insistent : null,
         largeIcon: hasImage ? FilePathAndroidBitmap(imagePath) : null,
+        // Photo reminders show the picture big; text reminders expand so the
+        // full message reads large in the notification shade.
         styleInformation: hasImage
             ? BigPictureStyleInformation(
                 FilePathAndroidBitmap(imagePath),
                 contentTitle: 'Memoring',
                 summaryText: '',
               )
-            : null,
+            : BigTextStyleInformation(bigText),
       ),
       iOS: DarwinNotificationDetails(
         presentAlert: true,
@@ -209,6 +212,7 @@ class LocalNotificationService implements NotificationService {
         sound: reminder.soundEnabled,
         intensity: reminder.intensity,
         imagePath: reminder.imagePath,
+        bigText: reminder.text,
       ),
       payload: reminder.id,
     );

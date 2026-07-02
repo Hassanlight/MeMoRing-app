@@ -183,6 +183,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         title: const Text('Memoring', style: AppTypography.heading),
         actions: [
           IconButton(
+            tooltip: 'Memories',
+            onPressed: () => context.push('/memories'),
+            icon: const Icon(Icons.photo_library_outlined,
+                color: AppColors.mutedWhite),
+          ),
+          IconButton(
             tooltip: 'Insights',
             onPressed: () => context.push('/analytics'),
             icon: const Icon(Icons.insights_outlined, color: AppColors.mutedWhite),

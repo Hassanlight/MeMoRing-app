@@ -143,7 +143,11 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
       if (context.mounted) context.pop();
     }
 
-    return Scaffold(
+    // High-intensity alerts cannot be escaped: back is blocked until the
+    // confirmation photo is submitted. The ring continues regardless.
+    return PopScope(
+      canPop: !isHigh,
+      child: Scaffold(
       backgroundColor: AppColors.matteBlack,
       body: SafeArea(
         child: ScaleTransition(
@@ -182,8 +186,18 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
                           height: 200, fit: BoxFit.cover, cacheHeight: 400),
                     ),
                   const SizedBox(height: AppSpacing.xl),
-                  Text(reminder.text,
-                      style: AppTypography.alert, textAlign: TextAlign.center),
+                  // Big bright note: short messages get huge type.
+                  Text(
+                    reminder.text,
+                    style: AppTypography.alert.copyWith(
+                      fontSize: reminder.text.length <= 24
+                          ? 56
+                          : reminder.text.length <= 60
+                              ? 44
+                              : 34,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: AppSpacing.lg),
                   Text(formatWhen(reminder.fireAt),
                       style: AppTypography.caption),
@@ -197,6 +211,7 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
             ),
           ),
         ),
+      ),
       ),
     );
   }
