@@ -13,6 +13,7 @@ import 'package:memoring/core/widgets/glass_card.dart';
 import 'package:memoring/features/onboarding/domain/user_profile.dart';
 import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
 import 'package:memoring/features/prayer/presentation/prayer_providers.dart';
+import 'package:memoring/features/reminders/domain/reminder.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -26,7 +27,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String _ageBand = '';
   Religion _religion = Religion.undisclosed;
   bool _prayer = false;
-  bool _prayerSelfie = false;
+  ReminderIntensity _prayerIntensity = ReminderIntensity.medium;
   bool _saving = false;
 
   static const _ageBands = ['Under 18', '18–30', '31–50', '50+'];
@@ -45,7 +46,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ageBand: _ageBand,
       religion: _religion,
       prayerReminders: prayerOn,
-      prayerSelfie: prayerOn && _prayerSelfie,
+      prayerIntensity: _prayerIntensity,
     );
     await ref.read(profileRepositoryProvider).save(profile);
     ref.invalidate(profileProvider);
@@ -154,21 +155,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
               if (_prayer) ...[
                 const SizedBox(height: AppSpacing.md),
-                Text('How to confirm each prayer', style: AppTypography.caption),
+                Text('How each prayer alert behaves', style: AppTypography.caption),
                 const SizedBox(height: AppSpacing.sm),
                 Wrap(
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
                   children: [
                     _Choice(
-                      label: 'Just ring',
-                      selected: !_prayerSelfie,
-                      onTap: () => setState(() => _prayerSelfie = false),
+                      label: 'Ring once',
+                      selected: _prayerIntensity == ReminderIntensity.low,
+                      onTap: () => setState(
+                          () => _prayerIntensity = ReminderIntensity.low),
+                    ),
+                    _Choice(
+                      label: 'Keep ringing',
+                      selected: _prayerIntensity == ReminderIntensity.medium,
+                      onTap: () => setState(
+                          () => _prayerIntensity = ReminderIntensity.medium),
                     ),
                     _Choice(
                       label: 'Selfie at mosque',
-                      selected: _prayerSelfie,
-                      onTap: () => setState(() => _prayerSelfie = true),
+                      selected: _prayerIntensity == ReminderIntensity.high,
+                      onTap: () => setState(
+                          () => _prayerIntensity = ReminderIntensity.high),
                     ),
                   ],
                 ),

@@ -148,14 +148,14 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
                       child: Image.file(File(_shotPath!),
-                          height: 220, fit: BoxFit.cover),
+                          height: 220, fit: BoxFit.cover, cacheHeight: 440),
                     )
                   else if (reminder.imagePath != null &&
                       File(reminder.imagePath!).existsSync())
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
                       child: Image.file(File(reminder.imagePath!),
-                          height: 200, fit: BoxFit.cover),
+                          height: 200, fit: BoxFit.cover, cacheHeight: 400),
                     ),
                   const SizedBox(height: AppSpacing.xl),
                   Text(reminder.text,

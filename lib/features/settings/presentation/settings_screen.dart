@@ -11,6 +11,7 @@ import 'package:memoring/core/widgets/glass_card.dart';
 import 'package:memoring/features/onboarding/domain/user_profile.dart';
 import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
 import 'package:memoring/features/prayer/presentation/prayer_providers.dart';
+import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -148,33 +149,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           value: _profile!.prayerReminders,
                           activeColor: AppColors.shinyWhite,
                           onChanged: (v) => _updateProfile(
-                            _profile!.copyWith(
-                              prayerReminders: v,
-                              prayerSelfie: v && _profile!.prayerSelfie,
-                            ),
+                            _profile!.copyWith(prayerReminders: v),
                           ),
                         ),
                       ],
                     ),
                     if (_profile!.prayerReminders) ...[
                       const SizedBox(height: AppSpacing.md),
-                      Text('Confirm each prayer', style: AppTypography.caption),
+                      Text('How each prayer alert behaves',
+                          style: AppTypography.caption),
                       const SizedBox(height: AppSpacing.sm),
                       Wrap(
                         spacing: AppSpacing.sm,
                         runSpacing: AppSpacing.sm,
                         children: [
                           _PrayerChoice(
-                            label: 'Just ring',
-                            selected: !_profile!.prayerSelfie,
-                            onTap: () => _updateProfile(
-                                _profile!.copyWith(prayerSelfie: false)),
+                            label: 'Ring once',
+                            selected: _profile!.prayerIntensity ==
+                                ReminderIntensity.low,
+                            onTap: () => _updateProfile(_profile!.copyWith(
+                                prayerIntensity: ReminderIntensity.low)),
+                          ),
+                          _PrayerChoice(
+                            label: 'Keep ringing',
+                            selected: _profile!.prayerIntensity ==
+                                ReminderIntensity.medium,
+                            onTap: () => _updateProfile(_profile!.copyWith(
+                                prayerIntensity: ReminderIntensity.medium)),
                           ),
                           _PrayerChoice(
                             label: 'Selfie at mosque',
-                            selected: _profile!.prayerSelfie,
-                            onTap: () => _updateProfile(
-                                _profile!.copyWith(prayerSelfie: true)),
+                            selected: _profile!.prayerIntensity ==
+                                ReminderIntensity.high,
+                            onTap: () => _updateProfile(_profile!.copyWith(
+                                prayerIntensity: ReminderIntensity.high)),
                           ),
                         ],
                       ),

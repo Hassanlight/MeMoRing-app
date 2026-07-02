@@ -339,6 +339,7 @@ class _Bubble extends StatelessWidget {
                     File(message.imagePath!),
                     height: 140,
                     fit: BoxFit.cover,
+                    cacheHeight: 280,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -437,7 +438,10 @@ class _InputBar extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppSpacing.md),
                       child: Image.file(File(pendingImage!),
-                          height: 64, width: 64, fit: BoxFit.cover),
+                          height: 64,
+                          width: 64,
+                          fit: BoxFit.cover,
+                          cacheWidth: 128),
                     ),
                     Positioned(
                       right: 0,

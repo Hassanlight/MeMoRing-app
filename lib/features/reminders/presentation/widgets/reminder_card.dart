@@ -71,6 +71,7 @@ class ReminderCard extends StatelessWidget {
                 height: 120,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                cacheHeight: 240,
               ),
             ),
           ],

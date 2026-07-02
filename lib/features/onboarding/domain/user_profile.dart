@@ -2,6 +2,8 @@
 /// Religion is sensitive data: it stays local and only tailors which features show.
 library;
 
+import 'package:memoring/features/reminders/domain/reminder.dart';
+
 enum Religion { muslim, other, undisclosed }
 
 final class UserProfile {
@@ -10,25 +12,32 @@ final class UserProfile {
     this.ageBand = '',
     this.religion = Religion.undisclosed,
     this.prayerReminders = false,
-    this.prayerSelfie = false,
+    this.prayerIntensity = ReminderIntensity.medium,
   });
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-        name: json['name'] as String? ?? '',
-        ageBand: json['ageBand'] as String? ?? '',
-        religion: Religion.values
-            .byName(json['religion'] as String? ?? 'undisclosed'),
-        prayerReminders: json['prayerReminders'] as bool? ?? false,
-        prayerSelfie: json['prayerSelfie'] as bool? ?? false,
-      );
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    // Migrate the old boolean field (selfie yes/no) to the intensity choice.
+    final legacySelfie = json['prayerSelfie'] as bool?;
+    final intensityName = json['prayerIntensity'] as String? ??
+        ((legacySelfie ?? false) ? 'high' : 'medium');
+    return UserProfile(
+      name: json['name'] as String? ?? '',
+      ageBand: json['ageBand'] as String? ?? '',
+      religion:
+          Religion.values.byName(json['religion'] as String? ?? 'undisclosed'),
+      prayerReminders: json['prayerReminders'] as bool? ?? false,
+      prayerIntensity: ReminderIntensity.values.byName(intensityName),
+    );
+  }
 
   final String name;
   final String ageBand;
   final Religion religion;
   final bool prayerReminders;
 
-  /// How prayer alerts are confirmed: true = selfie at a mosque, false = just ring.
-  final bool prayerSelfie;
+  /// How prayer alerts behave: low = one tone, medium = keeps ringing,
+  /// high = selfie at a mosque to dismiss.
+  final ReminderIntensity prayerIntensity;
 
   bool get isMuslim => religion == Religion.muslim;
 
@@ -37,7 +46,7 @@ final class UserProfile {
         'ageBand': ageBand,
         'religion': religion.name,
         'prayerReminders': prayerReminders,
-        'prayerSelfie': prayerSelfie,
+        'prayerIntensity': prayerIntensity.name,
       };
 
   UserProfile copyWith({
@@ -45,13 +54,13 @@ final class UserProfile {
     String? ageBand,
     Religion? religion,
     bool? prayerReminders,
-    bool? prayerSelfie,
+    ReminderIntensity? prayerIntensity,
   }) =>
       UserProfile(
         name: name ?? this.name,
         ageBand: ageBand ?? this.ageBand,
         religion: religion ?? this.religion,
         prayerReminders: prayerReminders ?? this.prayerReminders,
-        prayerSelfie: prayerSelfie ?? this.prayerSelfie,
+        prayerIntensity: prayerIntensity ?? this.prayerIntensity,
       );
 }

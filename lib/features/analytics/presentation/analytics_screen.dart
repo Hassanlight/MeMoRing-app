@@ -206,7 +206,7 @@ class _PrayerLogRow extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(AppSpacing.md),
               child: Image.file(File(reminder.imagePath!),
-                  width: 52, height: 52, fit: BoxFit.cover),
+                  width: 52, height: 52, fit: BoxFit.cover, cacheWidth: 104),
             )
           else
             const Icon(Icons.mosque_outlined,

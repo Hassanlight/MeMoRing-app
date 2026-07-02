@@ -57,8 +57,7 @@ class PrayerService {
 
     final params = CalculationMethod.qatar.getParameters()
       ..madhab = Madhab.shafi;
-    final intensity =
-        profile.prayerSelfie ? ReminderIntensity.high : ReminderIntensity.medium;
+    final intensity = profile.prayerIntensity;
 
     for (var dayOffset = 0; dayOffset <= 1; dayOffset++) {
       final date = DateTime.now().add(Duration(days: dayOffset));
