@@ -66,9 +66,10 @@ Future<void> main() async {
   // activity is required for the system dialog), then make sure every saved
   // reminder actually has a pending alarm.
   WidgetsBinding.instance.addPostFrameCallback((_) async {
-    await notifications.requestPermission();
-    // Keep prayer reminders current for returning Muslim users.
+    // First run: onboarding owns the permission flow (no double prompts).
     if (profile != null) {
+      await notifications.requestPermission();
+      // Keep prayer reminders current for returning Muslim users.
       await container.read(prayerServiceProvider).sync(profile);
     }
     final repo = container.read(reminderRepositoryProvider);

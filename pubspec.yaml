@@ -38,6 +38,8 @@ dependencies:
   # Monetization — AdMob banners (test IDs until a real AdMob account exists).
   # No-fill/offline/Huawei (no Google services) → banner simply doesn't render.
   google_mobile_ads: ^9.0.0
+  # Up-front permission requests during onboarding (camera, mic)
+  permission_handler: ^11.3.0
 
 dev_dependencies:
   flutter_test:

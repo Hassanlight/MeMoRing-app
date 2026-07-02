@@ -14,6 +14,8 @@ import 'package:memoring/features/onboarding/domain/user_profile.dart';
 import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
 import 'package:memoring/features/prayer/presentation/prayer_providers.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
+import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -29,8 +31,46 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _prayer = false;
   ReminderIntensity _prayerIntensity = ReminderIntensity.medium;
   bool _saving = false;
+  bool _granting = false;
+  bool? _notifOk;
+  bool? _camOk;
+  bool? _micOk;
 
   static const _ageBands = ['Under 18', '18–30', '31–50', '50+'];
+
+  bool get _allGranted =>
+      (_notifOk ?? false) && (_camOk ?? false) && (_micOk ?? false);
+
+  Future<void> _refreshPermissionStatus() async {
+    final notif =
+        await ref.read(notificationServiceProvider).notificationsAllowed();
+    final cam = await Permission.camera.status;
+    final mic = await Permission.microphone.status;
+    if (mounted) {
+      setState(() {
+        _notifOk = notif;
+        _camOk = cam.isGranted;
+        _micOk = mic.isGranted;
+      });
+    }
+  }
+
+  /// Request everything the app uses, one OS dialog after another, so nothing
+  /// interrupts the user later.
+  Future<void> _grantAll() async {
+    setState(() => _granting = true);
+    await ref.read(notificationServiceProvider).requestPermission();
+    await Permission.camera.request();
+    await Permission.microphone.request();
+    await _refreshPermissionStatus();
+    if (mounted) setState(() => _granting = false);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshPermissionStatus());
+  }
 
   @override
   void dispose() {
@@ -39,6 +79,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _finish() async {
+    // Make sure every permission was offered before entering the app.
+    if (!_allGranted && !_granting) {
+      await _grantAll();
+    }
     setState(() => _saving = true);
     final prayerOn = _religion == Religion.muslim && _prayer;
     final profile = UserProfile(
@@ -184,6 +228,43 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ],
             ],
 
+            const SizedBox(height: AppSpacing.xl),
+            Text('Permissions — grant once, works smoothly forever',
+                style: AppTypography.caption),
+            const SizedBox(height: AppSpacing.sm),
+            GlassCard(
+              child: Column(
+                children: [
+                  _PermRow(
+                    icon: Icons.notifications_active_outlined,
+                    label: 'Notifications & alarms',
+                    sub: 'So reminders actually ring',
+                    granted: _notifOk,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  _PermRow(
+                    icon: Icons.photo_camera_outlined,
+                    label: 'Camera',
+                    sub: 'Photo reminders and selfie confirm',
+                    granted: _camOk,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  _PermRow(
+                    icon: Icons.mic_none,
+                    label: 'Microphone',
+                    sub: 'Speak reminders instead of typing',
+                    granted: _micOk,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  GlassButton(
+                    label: _allGranted ? 'All set ✓' : 'Allow permissions',
+                    loading: _granting,
+                    onPressed: _allGranted ? null : _grantAll,
+                  ),
+                ],
+              ),
+            ),
+
             const SizedBox(height: AppSpacing.xxl),
             GlassButton(
               label: 'Continue',
@@ -191,9 +272,48 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               loading: _saving,
               onPressed: _finish,
             ),
+            const SizedBox(height: AppSpacing.lg),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PermRow extends StatelessWidget {
+  const _PermRow({
+    required this.icon,
+    required this.label,
+    required this.sub,
+    required this.granted,
+  });
+  final IconData icon;
+  final String label;
+  final String sub;
+  final bool? granted;
+
+  @override
+  Widget build(BuildContext context) {
+    final (statusIcon, color) = switch (granted) {
+      true => (Icons.check_circle, AppColors.shortTermAccent),
+      false => (Icons.radio_button_unchecked, AppColors.mutedWhite),
+      null => (Icons.radio_button_unchecked, AppColors.mutedWhite),
+    };
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppColors.mutedWhite),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: AppTypography.bodyMedium),
+              Text(sub, style: AppTypography.caption),
+            ],
+          ),
+        ),
+        Icon(statusIcon, size: 18, color: color),
+      ],
     );
   }
 }
