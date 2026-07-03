@@ -31,7 +31,12 @@ class HomeShell extends StatelessWidget {
             ),
             child: BottomNavigationBar(
               currentIndex: index,
-              onTap: (i) => shellTabIndex.value = i,
+              onTap: (i) {
+                // Drop the keyboard when leaving the chat tab — every screen
+                // opens clean and full-height.
+                if (i != 0) FocusManager.instance.primaryFocus?.unfocus();
+                shellTabIndex.value = i;
+              },
               backgroundColor: Colors.transparent,
               elevation: 0,
               selectedItemColor: AppColors.shinyWhite,

@@ -394,12 +394,11 @@ class _InputBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Wrap(
-                spacing: AppSpacing.sm,
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
                 children: [
                   _IntensityChip(
                     label: 'Once',
@@ -407,18 +406,21 @@ class _InputBar extends StatelessWidget {
                     selected: intensity == ReminderIntensity.low,
                     onTap: () => onIntensity(ReminderIntensity.low),
                   ),
+                  const SizedBox(width: AppSpacing.sm),
                   _IntensityChip(
                     label: 'Ring',
                     icon: Icons.notifications_active_outlined,
                     selected: intensity == ReminderIntensity.medium,
                     onTap: () => onIntensity(ReminderIntensity.medium),
                   ),
+                  const SizedBox(width: AppSpacing.sm),
                   _IntensityChip(
                     label: 'Selfie',
                     icon: Icons.camera_front_outlined,
                     selected: intensity == ReminderIntensity.high,
                     onTap: () => onIntensity(ReminderIntensity.high),
                   ),
+                  const SizedBox(width: AppSpacing.sm),
                   _IntensityChip(
                     label: 'Wake',
                     icon: Icons.calculate_outlined,

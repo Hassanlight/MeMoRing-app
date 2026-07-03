@@ -56,15 +56,16 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
   int _failedChecks = 0;
   Timer? _vibrateTimer;
 
-  // Wake level: math-to-dismiss.
+  // Wake level: math-to-dismiss. Simple addition — enough to wake the brain,
+  // easy enough not to frustrate a groggy person.
   final _mathAnswer = TextEditingController();
-  late int _mathA = 12 + Random().nextInt(38);
-  late int _mathB = 3 + Random().nextInt(7);
+  late int _mathA = 11 + Random().nextInt(29);
+  late int _mathB = 6 + Random().nextInt(14);
   int _mathTries = 0;
 
   void _newProblem() {
-    _mathA = 12 + Random().nextInt(38);
-    _mathB = 3 + Random().nextInt(7);
+    _mathA = 11 + Random().nextInt(29);
+    _mathB = 6 + Random().nextInt(14);
     _mathAnswer.clear();
   }
 
@@ -407,7 +408,7 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.md),
-        Text('$_mathA × $_mathB = ?',
+        Text('$_mathA + $_mathB = ?',
             style: AppTypography.heading, textAlign: TextAlign.center),
         const SizedBox(height: AppSpacing.md),
         TextField(
@@ -440,7 +441,7 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
           filled: true,
           onPressed: () {
             final given = int.tryParse(_mathAnswer.text.trim());
-            if (given == _mathA * _mathB) {
+            if (given == _mathA + _mathB) {
               _submitted = true;
               _vibrateTimer?.cancel();
               stopAndPop(() => controller.complete(reminder));
