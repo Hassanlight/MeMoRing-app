@@ -122,7 +122,10 @@ jobs:
           import re, sys
           p = sys.argv[1]
           s = open(p).read()
-          s = s.replace('android {', '''val keystoreProperties = java.util.Properties().apply {
+          # `java` is shadowed by Gradle's extension inside .kts — import instead.
+          if 'import java.util.Properties' not in s:
+              s = 'import java.util.Properties\n' + s
+          s = s.replace('android {', '''val keystoreProperties = Properties().apply {
               val f = rootProject.file("key.properties")
               if (f.exists()) f.inputStream().use { load(it) }
           }
