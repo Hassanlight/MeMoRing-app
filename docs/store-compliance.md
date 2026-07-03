@@ -52,3 +52,39 @@ Status legend: ✅ done in code/CI · 🟡 you must do it in the store console �
 2. **Privacy policy URL** — required by both stores; a single static page is enough.
 3. **iOS lane** — doesn't exist yet; needs macOS CI + Apple account before any App Store talk.
 4. Everything else in the app itself is policy-clean: offline, no tracking, no accounts, minimal permissions, sensitive data optional and local.
+
+---
+
+# Huawei AppGallery submission (account approved 2026-07-03)
+
+## Why the app already works on Huawei phones (no Google services)
+| Piece | Behavior without GMS |
+|---|---|
+| Alarms/notifications | Pure Android APIs — full function ✓ |
+| Photos, vault, PIN, prayer times, parser | Pure Dart/Android — full function ✓ |
+| AdMob banners | Fail-safe: simply don't render (no crash) |
+| Face/scene detection | Bundled on-device models; verification FAILS OPEN if unavailable |
+| Voice input | Depends on device speech service; app shows a friendly message if absent |
+
+## Submission checklist (AppGallery Connect)
+1. Create app: Android, name "Memoring", default language English.
+2. Upload the **SIGNED** APK: `app-arm64-v8a-release.apk` (after signing secrets are
+   set, every CI build is release-signed). AppGallery accepts APK directly.
+   Optionally also upload the armeabi-v7a APK for old devices.
+3. Privacy policy URL: https://layalalshaykh-spec.github.io/memoring-site/
+4. Permissions declaration — justify each: notifications/exact alarm (core reminder
+   function), camera (photo reminders + confirmation selfies), microphone (voice
+   dictation), boot (restore alarms after restart). No location, no contacts.
+5. Content rating: fill the questionnaire (no violence/gambling; UGC = user's own
+   photos stored locally only) → typically 3+.
+6. App category: Tools or Lifestyle → Efficiency.
+7. Copyright: if asked for qualification, select "individual developer" statement.
+8. Note for review (recommended): "Reminder app. All user data stays on-device;
+   no account required. Ads via AdMob only appear on devices with Google services;
+   on Huawei devices no ads are shown."
+9. Screenshots: portrait, min 3 (chat, full-screen alarm, Life hub, prayer times).
+
+## Monetization on Huawei (later)
+AdMob never serves on Huawei devices. If AppGallery revenue matters, integrate
+Huawei Ads Kit (`huawei_ads` Flutter plugin) behind the same fail-safe banner
+widget — separate task, adds Huawei SDK weight.
