@@ -46,15 +46,15 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
 
   Future<void> _save() async {
     final text = _note.text.trim();
-    if (text.isEmpty && _pendingImage == null) return;
+    final image = _pendingImage;
+    if (text.isEmpty && image == null) return;
+    // Clear instantly — the saved card appearing below is the confirmation.
+    _note.clear();
+    setState(() => _pendingImage = null);
+    FocusScope.of(context).unfocus();
     await ref
         .read(vaultProvider.notifier)
-        .add(text.isEmpty ? 'Untitled' : text, _pendingImage);
-    if (mounted) {
-      setState(() => _pendingImage = null);
-      _note.clear();
-      FocusScope.of(context).unfocus();
-    }
+        .add(text.isEmpty ? 'Untitled' : text, image);
   }
 
   @override
