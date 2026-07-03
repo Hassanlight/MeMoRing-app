@@ -6,6 +6,7 @@ library;
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -55,6 +56,18 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
   int _failedChecks = 0;
   Timer? _vibrateTimer;
 
+  // Wake level: math-to-dismiss.
+  final _mathAnswer = TextEditingController();
+  late int _mathA = 12 + Random().nextInt(38);
+  late int _mathB = 3 + Random().nextInt(7);
+  int _mathTries = 0;
+
+  void _newProblem() {
+    _mathA = 12 + Random().nextInt(38);
+    _mathB = 3 + Random().nextInt(7);
+    _mathAnswer.clear();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +78,7 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
   void dispose() {
     if (activeAlertId == widget.id) activeAlertId = null;
     _vibrateTimer?.cancel();
+    _mathAnswer.dispose();
     _anim.dispose();
     super.dispose();
   }
@@ -152,6 +166,8 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
     }
     final controller = ref.read(remindersControllerProvider);
     final isHigh = reminder.intensity == ReminderIntensity.high;
+    final isWake = reminder.intensity == ReminderIntensity.wake;
+    final tough = isHigh || isWake; // inescapable levels
     final isMuslim = ref.watch(profileProvider).valueOrNull?.isMuslim ?? false;
 
     // Already confirmed (e.g. a stale notification was tapped after submit) or
@@ -192,10 +208,10 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
       );
     }
 
-    // Ring + vibrate + open the camera straight away for photo-confirm alerts.
-    if (isHigh) {
+    // Ring + vibrate; photo levels open the camera straight away.
+    if (tough) {
       _ensureVibration();
-      if (!_autoOpened) {
+      if (isHigh && !_autoOpened) {
         _autoOpened = true;
         WidgetsBinding.instance
             .addPostFrameCallback((_) => _openCamera(isMuslim));
@@ -222,10 +238,10 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
       if (context.mounted) context.pop();
     }
 
-    // High-intensity alerts cannot be escaped: back is blocked until the
-    // confirmation photo is submitted. The ring continues regardless.
+    // Tough alerts cannot be escaped: back is blocked until confirmed
+    // (photo for high, math for wake). The ring continues regardless.
     return PopScope(
-      canPop: !isHigh,
+      canPop: !tough,
       child: Scaffold(
       backgroundColor: AppColors.matteBlack,
       body: SafeArea(
@@ -283,6 +299,8 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
                   const Spacer(),
                   if (isHigh)
                     _photoActions(reminder, isMuslim, submit)
+                  else if (isWake)
+                    _mathActions(controller, reminder, stopAndPop)
                   else
                     _ringActions(controller, reminder, stopAndPop),
                 ],
@@ -360,6 +378,68 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _mathActions(
+    RemindersController controller,
+    Reminder reminder,
+    Future<void> Function(Future<void> Function()) stopAndPop,
+  ) {
+    return Column(
+      children: [
+        Text(
+          'Solve to stop the alarm',
+          style: AppTypography.caption,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Text('$_mathA × $_mathB = ?',
+            style: AppTypography.heading, textAlign: TextAlign.center),
+        const SizedBox(height: AppSpacing.md),
+        TextField(
+          controller: _mathAnswer,
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          autofocus: true,
+          style: AppTypography.heading,
+          cursorColor: AppColors.shinyWhite,
+          decoration: InputDecoration(
+            hintText: '?',
+            hintStyle: const TextStyle(color: AppColors.mutedWhite),
+            filled: true,
+            fillColor: AppColors.glassTint,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        if (_mathTries > 0) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text('Not quite — try again ($_mathTries wrong)',
+              style:
+                  AppTypography.caption.copyWith(color: AppColors.dangerRed)),
+        ],
+        const SizedBox(height: AppSpacing.md),
+        GlassButton(
+          label: 'Stop alarm',
+          filled: true,
+          onPressed: () {
+            final given = int.tryParse(_mathAnswer.text.trim());
+            if (given == _mathA * _mathB) {
+              _submitted = true;
+              _vibrateTimer?.cancel();
+              stopAndPop(() => controller.complete(reminder));
+            } else {
+              setState(() {
+                _mathTries++;
+                _newProblem();
+              });
+            }
+          },
         ),
       ],
     );

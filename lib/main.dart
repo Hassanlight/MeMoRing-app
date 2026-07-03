@@ -85,5 +85,40 @@ Future<void> main() async {
         await notifications.schedule(r);
       }
     }
+
+    // Tomorrow preview — one gentle 9pm note listing tomorrow's reminders,
+    // so mornings never surprise the user.
+    var preview = DateTime(now.year, now.month, now.day, 21);
+    if (!preview.isAfter(now)) preview = preview.add(const Duration(days: 1));
+    final targetDay = preview.add(const Duration(days: 1));
+    final tomorrows = (await repo.getAll())
+        .where((r) =>
+            r.isActive &&
+            !r.isCompleted &&
+            r.effectiveFireAt.year == targetDay.year &&
+            r.effectiveFireAt.month == targetDay.month &&
+            r.effectiveFireAt.day == targetDay.day)
+        .toList()
+      ..sort((a, b) => a.effectiveFireAt.compareTo(b.effectiveFireAt));
+    if (tomorrows.isNotEmpty) {
+      String clock(DateTime d) {
+        final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+        final m = d.minute.toString().padLeft(2, '0');
+        return '$h:$m ${d.hour < 12 ? 'AM' : 'PM'}';
+      }
+
+      final lines = tomorrows
+          .take(5)
+          .map((r) => '${clock(r.effectiveFireAt)} — ${r.text}')
+          .join('\n');
+      final extra =
+          tomorrows.length > 5 ? '\n…and ${tomorrows.length - 5} more' : '';
+      await notifications.schedulePlain(
+        id: 990020,
+        title: 'Tomorrow: ${tomorrows.length} reminder(s)',
+        body: '$lines$extra',
+        when: preview,
+      );
+    }
   });
 }

@@ -103,6 +103,10 @@ class AnalyticsScreen extends ConsumerWidget {
                       _LevelRow(
                           label: 'Selfie',
                           count: a.byIntensity[ReminderIntensity.high] ?? 0),
+                      const SizedBox(height: AppSpacing.sm),
+                      _LevelRow(
+                          label: 'Wake',
+                          count: a.byIntensity[ReminderIntensity.wake] ?? 0),
                     ],
                   ),
                 ),

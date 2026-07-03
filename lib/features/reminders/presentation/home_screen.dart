@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:memoring/app/theme/app_colors.dart';
 import 'package:memoring/app/theme/app_spacing.dart';
+import 'package:memoring/app/home_shell.dart';
 import 'package:memoring/app/theme/app_typography.dart';
 import 'package:memoring/core/widgets/segmented_toggle.dart';
 import 'package:memoring/features/ads/ad_banner.dart';
@@ -34,7 +35,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.glassTintStrong,
         elevation: 0,
-        onPressed: () => context.go('/'),
+        onPressed: () => shellTabIndex.value = 0, // jump to the chat tab
         tooltip: 'Add via chat',
         child: const Icon(Icons.add_comment_outlined,
             color: AppColors.shinyWhite, size: 26),

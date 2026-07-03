@@ -47,9 +47,7 @@ AnalyticsSummary computeAnalytics(List<Reminder> reminders) {
   var recurring = 0;
   var withPhoto = 0;
   final byIntensity = <ReminderIntensity, int>{
-    ReminderIntensity.low: 0,
-    ReminderIntensity.medium: 0,
-    ReminderIntensity.high: 0,
+    for (final i in ReminderIntensity.values) i: 0,
   };
 
   for (final r in reminders) {

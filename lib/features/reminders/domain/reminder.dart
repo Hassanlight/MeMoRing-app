@@ -10,7 +10,8 @@ enum ReminderType { short, long }
 /// - [low]: pops up with a single tone, once.
 /// - [medium]: pops up and keeps ringing until dismissed.
 /// - [high]: keeps ringing until the user takes a selfie to confirm.
-enum ReminderIntensity { low, medium, high }
+/// - [wake]: keeps ringing until the user solves a math problem (heavy sleepers).
+enum ReminderIntensity { low, medium, high, wake }
 
 /// An immutable reminder. [fireAt] is the next occurrence as local wall-clock
 /// time; [text] is already cleaned of its time phrase. [imagePath] is an

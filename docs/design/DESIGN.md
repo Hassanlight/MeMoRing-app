@@ -256,3 +256,40 @@ settings) and that the alert route is launchable from a background notification 
 Confirm the `TimeIntentParser` interface so Compose's live preview binds to it.
 → **flutter-developer** (after architecture): build glass primitives first, then
 Home → Compose → Detail → Alert → Settings → Onboarding, each verified against §10–11.
+
+---
+
+# Design v2 — Life hub & simple navigation (2026-07-02)
+
+## UX problem
+v1 hid features behind small header icons. With 8 new features, discoverability and
+one-hand speed demand a dedicated structure.
+
+## Navigation: 3 tabs, bottom-anchored (thumb zone)
+```
+┌─────────────────────────────┐
+│         (screen)            │
+├─────────────────────────────┤
+│   💬 Chat   ⏰ Reminders   ⊞ Life │  glass bar, 3 tabs, labels always visible
+└─────────────────────────────┘
+```
+- **Chat** — the assistant (default). Header now has NO feature icons (clean).
+- **Reminders** — the short/long list.
+- **Life** — a hub of big glass cards, one per life-problem:
+  Renewals 🪪 · Medicine 💊 · People 🎂 · Vault 🔍 · Memories 🖼 · Insights 📊 · Settings ⚙
+- Rules: max 2 taps to any feature; every hub card = icon + name + one-line promise;
+  all forms are single-screen with big primary button; presets over typing everywhere.
+
+## New features (all offline, reuse the reminder engine)
+1. **Renewals** — template cards (Qatar ID, Visa, Passport, Car istimara, Health card,
+   Custom) → expiry date → auto-creates 3 reminders (1 month / 1 week / 1 day before).
+2. **Medicine** — name + time chips (defaults 8:00/14:00/21:00, add custom) +
+   photo-proof toggle → daily recurring reminders (photo-proof = high intensity).
+3. **People** — name + birthday → 2 yearly reminders: eve 7pm ("Tomorrow is X's
+   birthday — get a gift") + day 9am. List + delete.
+4. **Vault** — timeless memory: photo + one line ("passport → black drawer"),
+   search box on top. Not a reminder — a place answer.
+5. **Wake level** — 4th intensity chip: alarm stops only after solving a math
+   problem; vibration continues like Selfie level.
+6. **Tomorrow preview** — one gentle 9pm notification listing tomorrow's reminders.
+7. *(next build)* Voice-memo reminders; QR share. *(deferred)* Location.

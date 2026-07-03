@@ -28,6 +28,14 @@ abstract interface class NotificationService {
   /// Fires a sample alert ~5s out so the user can verify sound/permissions.
   Future<void> scheduleTest();
 
+  /// Schedules a one-off gentle notification (e.g. the 9pm tomorrow preview).
+  Future<void> schedulePlain({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime when,
+  });
+
   /// Shows a notification immediately (bypasses alarm scheduling) — isolates the
   /// display/sound pipeline from alarm-permission/battery issues.
   Future<void> showNow();
@@ -226,6 +234,25 @@ class LocalNotificationService implements NotificationService {
       body: 'If you can hear this, your alerts work.',
       when: tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5)),
       details: _details(sound: true),
+    );
+  }
+
+  @override
+  Future<void> schedulePlain({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime when,
+  }) async {
+    await _scheduleAt(
+      id: id,
+      title: title,
+      body: body,
+      when: tz.TZDateTime.from(when, tz.local),
+      details: _details(
+        sound: true,
+        bigText: body,
+      ),
     );
   }
 

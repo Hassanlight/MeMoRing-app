@@ -185,29 +185,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Memoring', style: AppTypography.heading),
-        actions: [
-          IconButton(
-            tooltip: 'Memories',
-            onPressed: () => context.push('/memories'),
-            icon: const Icon(Icons.photo_library_outlined,
-                color: AppColors.mutedWhite),
-          ),
-          IconButton(
-            tooltip: 'Insights',
-            onPressed: () => context.push('/analytics'),
-            icon: const Icon(Icons.insights_outlined, color: AppColors.mutedWhite),
-          ),
-          IconButton(
-            tooltip: 'All reminders',
-            onPressed: () => context.push('/reminders'),
-            icon: const Icon(Icons.list_alt_outlined, color: AppColors.mutedWhite),
-          ),
-          IconButton(
-            tooltip: 'Settings',
-            onPressed: () => context.push('/settings'),
-            icon: const Icon(Icons.settings_outlined, color: AppColors.mutedWhite),
-          ),
-        ],
+        // Features live in the bottom tabs (Reminders, Life) — header stays clean.
       ),
       body: SafeArea(
         child: Column(
@@ -440,6 +418,12 @@ class _InputBar extends StatelessWidget {
                     icon: Icons.camera_front_outlined,
                     selected: intensity == ReminderIntensity.high,
                     onTap: () => onIntensity(ReminderIntensity.high),
+                  ),
+                  _IntensityChip(
+                    label: 'Wake',
+                    icon: Icons.calculate_outlined,
+                    selected: intensity == ReminderIntensity.wake,
+                    onTap: () => onIntensity(ReminderIntensity.wake),
                   ),
                 ],
               ),

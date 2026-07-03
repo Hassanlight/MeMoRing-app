@@ -66,6 +66,8 @@ class RemindersController {
 
   /// Create a reminder from already-parsed pieces. Returns the new reminder or
   /// a user-safe error.
+  /// [id] may be provided for deterministic feature-owned reminders
+  /// (renewal_*, med_*, person_*) so they can be found/replaced later.
   Future<Result<Reminder>> create({
     required String text,
     required DateTime fireAt,
@@ -73,6 +75,7 @@ class RemindersController {
     bool soundEnabled = true,
     String? imagePath,
     ReminderIntensity intensity = ReminderIntensity.low,
+    String? id,
   }) async {
     final clean = text.trim();
     if (clean.isEmpty) return const Err('Add a few words about what to remember.');
@@ -80,7 +83,7 @@ class RemindersController {
       return const Err('That time has already passed.');
     }
     final reminder = Reminder(
-      id: _uuid.v4(),
+      id: id ?? _uuid.v4(),
       text: clean,
       createdAt: DateTime.now(),
       fireAt: fireAt,
