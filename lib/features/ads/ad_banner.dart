@@ -13,7 +13,11 @@ const String kBannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
 bool _adsInitialized = false;
 
 class AdBanner extends StatefulWidget {
-  const AdBanner({super.key});
+  const AdBanner({this.onUnavailable, super.key});
+
+  /// Called once if AdMob cannot serve here (e.g. Huawei device without
+  /// Google services) — lets the host screen fall back to Huawei ads.
+  final VoidCallback? onUnavailable;
 
   @override
   State<AdBanner> createState() => _AdBannerState();
@@ -22,11 +26,18 @@ class AdBanner extends StatefulWidget {
 class _AdBannerState extends State<AdBanner> {
   BannerAd? _ad;
   bool _loaded = false;
+  bool _reportedUnavailable = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  void _unavailable() {
+    if (_reportedUnavailable) return;
+    _reportedUnavailable = true;
+    widget.onUnavailable?.call();
   }
 
   Future<void> _load() async {
@@ -46,6 +57,7 @@ class _AdBannerState extends State<AdBanner> {
           onAdFailedToLoad: (ad, _) {
             ad.dispose();
             if (mounted) setState(() => _loaded = false);
+            _unavailable();
           },
         ),
       );
@@ -54,6 +66,7 @@ class _AdBannerState extends State<AdBanner> {
     } on Object {
       // No Google services (e.g. Huawei) or other init failure → no banner.
       if (mounted) setState(() => _loaded = false);
+      _unavailable();
     }
   }
 

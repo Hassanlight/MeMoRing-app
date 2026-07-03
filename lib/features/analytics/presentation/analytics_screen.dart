@@ -12,19 +12,35 @@ import 'package:memoring/app/theme/app_typography.dart';
 import 'package:memoring/core/time_format.dart';
 import 'package:memoring/core/widgets/glass_card.dart';
 import 'package:memoring/features/ads/ad_banner.dart';
+import 'package:memoring/features/ads/huawei_banner.dart';
 import 'package:memoring/features/analytics/domain/analytics.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
 
-class AnalyticsScreen extends ConsumerWidget {
+class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AnalyticsScreen> createState() => _AnalyticsScreenState();
+}
+
+class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
+  final _huawei = HuaweiBannerController();
+
+  @override
+  void dispose() {
+    _huawei.destroy();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final remindersAsync = ref.watch(remindersProvider);
 
     return Scaffold(
-      bottomNavigationBar: const AdBanner(),
+      // AdMob first; on devices without Google services (Huawei) it reports
+      // unavailable and the Huawei banner takes over for this screen.
+      bottomNavigationBar: AdBanner(onUnavailable: _huawei.start),
       appBar: AppBar(
         leading: IconButton(
           onPressed: () => context.pop(),

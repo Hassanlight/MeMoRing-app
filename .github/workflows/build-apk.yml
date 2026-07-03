@@ -73,6 +73,20 @@ jobs:
             echo "patched $GROOVY"
           fi
 
+      # Huawei Ads Kit resolves from Huawei's maven repo — add it to the
+      # generated settings.gradle.kts repositories blocks.
+      - name: Add Huawei maven repository
+        run: |
+          S=android/settings.gradle.kts
+          if [ -f "$S" ]; then
+            sed -i 's#mavenCentral()#mavenCentral()\n        maven(url = "https://developer.huawei.com/repo/")#g' "$S"
+            echo "patched $S:"; grep -n "huawei" "$S"
+          fi
+          B=android/build.gradle.kts
+          if [ -f "$B" ] && grep -q "repositories" "$B"; then
+            sed -i 's#mavenCentral()#mavenCentral()\n        maven(url = "https://developer.huawei.com/repo/")#g' "$B" || true
+          fi
+
       # Replace the default manifest with one that enables full-screen alerts,
       # exact alarms, and reboot rescheduling.
       - name: Apply full-screen-alert manifest

@@ -3,7 +3,7 @@
 name: memoring
 description: Type a reminder in plain text; Memoring figures out when and fires a full-screen alert.
 publish_to: "none"
-version: 0.1.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -40,6 +40,9 @@ dependencies:
   # Monetization — AdMob banners (test IDs until a real AdMob account exists).
   # No-fill/offline/Huawei (no Google services) → banner simply doesn't render.
   google_mobile_ads: ^9.0.0
+  # Monetization on Huawei devices (no Google services) — Petal/Huawei Ads Kit.
+  # Only attempted after AdMob reports unavailable, so devices never double-serve.
+  huawei_ads: ^13.4.65+300
   # Up-front permission requests during onboarding (camera, mic)
   permission_handler: ^11.3.0
   # SHA-256 for the local app-lock PIN (pure Dart, no native code)
