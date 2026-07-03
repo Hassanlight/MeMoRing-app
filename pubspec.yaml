@@ -42,6 +42,8 @@ dependencies:
   google_mobile_ads: ^9.0.0
   # Up-front permission requests during onboarding (camera, mic)
   permission_handler: ^11.3.0
+  # SHA-256 for the local app-lock PIN (pure Dart, no native code)
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:

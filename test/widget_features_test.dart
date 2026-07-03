@@ -90,7 +90,7 @@ void main() {
     await tester.pumpAndSettle();
     for (final title in [
       'Renewals', 'Medicine', 'People', 'Vault', 'Memories', 'Insights',
-      'Settings',
+      'Dashboard', 'Settings',
     ]) {
       expect(find.text(title), findsOneWidget, reason: 'missing $title card');
     }

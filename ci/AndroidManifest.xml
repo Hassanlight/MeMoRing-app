@@ -15,10 +15,14 @@
     <!-- Voice input (speech-to-text). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
+    <!-- allowBackup=false: personal photos/reminders can never be pulled out
+         via cloud/ADB backup extraction. -->
     <application
         android:label="Memoring"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"

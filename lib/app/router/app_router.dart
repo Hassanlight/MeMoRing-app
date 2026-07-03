@@ -4,7 +4,9 @@ library;
 
 import 'package:go_router/go_router.dart';
 import 'package:memoring/app/home_shell.dart';
+import 'package:memoring/core/security/pin_gate.dart';
 import 'package:memoring/features/alert/presentation/full_screen_alert.dart';
+import 'package:memoring/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:memoring/features/analytics/presentation/analytics_screen.dart';
 import 'package:memoring/features/medicine/presentation/medicine_screen.dart';
 import 'package:memoring/features/memories/presentation/memories_screen.dart';
@@ -38,9 +40,16 @@ GoRouter _buildRouter() {
       GoRoute(path: '/renewals', builder: (_, __) => const RenewalsScreen()),
       GoRoute(path: '/medicine', builder: (_, __) => const MedicineScreen()),
       GoRoute(path: '/people', builder: (_, __) => const PeopleScreen()),
-      GoRoute(path: '/vault', builder: (_, __) => const VaultScreen()),
+      GoRoute(
+          path: '/vault',
+          builder: (_, __) => const PinGate(child: VaultScreen())),
       GoRoute(path: '/analytics', builder: (_, __) => const AnalyticsScreen()),
-      GoRoute(path: '/memories', builder: (_, __) => const MemoriesScreen()),
+      GoRoute(
+          path: '/memories',
+          builder: (_, __) => const PinGate(child: MemoriesScreen())),
+      GoRoute(
+          path: '/dashboard',
+          builder: (_, __) => const PinGate(child: DashboardScreen())),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
       GoRoute(
         path: '/alert/:id',
