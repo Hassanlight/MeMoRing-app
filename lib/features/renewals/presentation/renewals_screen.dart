@@ -23,11 +23,13 @@ class RenewalsScreen extends ConsumerStatefulWidget {
 
 class _RenewalsScreenState extends ConsumerState<RenewalsScreen> {
   static const _templates = [
-    (Icons.badge_outlined, 'Qatar ID'),
-    (Icons.flight_takeoff_outlined, 'Visa'),
+    (Icons.badge_outlined, 'National ID'),
+    (Icons.flight_takeoff_outlined, 'Visa / Residence'),
     (Icons.menu_book_outlined, 'Passport'),
-    (Icons.directions_car_outlined, 'Car istimara'),
-    (Icons.favorite_outline, 'Health card'),
+    (Icons.directions_car_outlined, 'Car registration'),
+    (Icons.credit_card_outlined, 'Driving licence'),
+    (Icons.favorite_outline, 'Health card / Insurance'),
+    (Icons.home_outlined, 'Rent contract'),
     (Icons.description_outlined, 'Other document'),
   ];
 

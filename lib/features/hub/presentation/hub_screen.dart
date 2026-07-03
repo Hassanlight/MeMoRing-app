@@ -14,7 +14,7 @@ class HubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      (Icons.badge_outlined, 'Renewals', 'Qatar ID, visa, passport — never pay a late fine', '/renewals'),
+      (Icons.badge_outlined, 'Renewals', 'ID, visa, passport, licence — never miss an expiry', '/renewals'),
       (Icons.medication_outlined, 'Medicine', 'Daily doses with photo proof', '/medicine'),
       (Icons.cake_outlined, 'People', 'Birthdays — reminded the day before', '/people'),
       (Icons.search, 'Vault', '"Where did I put it?" — photo + note', '/vault'),

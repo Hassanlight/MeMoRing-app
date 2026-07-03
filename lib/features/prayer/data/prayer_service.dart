@@ -4,6 +4,7 @@ library;
 
 import 'package:adhan/adhan.dart';
 import 'package:memoring/features/onboarding/domain/user_profile.dart';
+import 'package:memoring/features/prayer/data/prayer_cities.dart';
 import 'package:memoring/features/reminders/domain/recurrence.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/domain/reminder_repository.dart';
@@ -15,8 +16,34 @@ class PrayerService {
   final ReminderRepository _repo;
   final NotificationService _notifications;
 
-  // Default location: Doha, Qatar. (City selection can be added later.)
-  static final Coordinates _coordinates = Coordinates(25.2854, 51.5310);
+  static CalculationParameters _methodFor(String method) {
+    switch (method) {
+      case 'qatar':
+        return CalculationMethod.qatar.getParameters();
+      case 'dubai':
+        return CalculationMethod.dubai.getParameters();
+      case 'kuwait':
+        return CalculationMethod.kuwait.getParameters();
+      case 'umm_al_qura':
+        return CalculationMethod.umm_al_qura.getParameters();
+      case 'karachi':
+        return CalculationMethod.karachi.getParameters();
+      case 'egyptian':
+        return CalculationMethod.egyptian.getParameters();
+      case 'turkey':
+        return CalculationMethod.turkey.getParameters();
+      case 'tehran':
+        return CalculationMethod.tehran.getParameters();
+      case 'singapore':
+        return CalculationMethod.singapore.getParameters();
+      case 'north_america':
+        return CalculationMethod.north_america.getParameters();
+      case 'moon_sighting_committee':
+        return CalculationMethod.moon_sighting_committee.getParameters();
+      default:
+        return CalculationMethod.muslim_world_league.getParameters();
+    }
+  }
 
   static String _two(int n) => n.toString().padLeft(2, '0');
 
@@ -55,14 +82,15 @@ class PrayerService {
       }
     }
 
-    final params = CalculationMethod.qatar.getParameters()
-      ..madhab = Madhab.shafi;
+    final city = cityByName(profile.prayerCity);
+    final coordinates = Coordinates(city.lat, city.lng);
+    final params = _methodFor(city.method)..madhab = Madhab.shafi;
     final intensity = profile.prayerIntensity;
 
     for (var dayOffset = 0; dayOffset <= 1; dayOffset++) {
       final date = DateTime.now().add(Duration(days: dayOffset));
       final components = DateComponents.from(date);
-      final times = PrayerTimes(_coordinates, components, params);
+      final times = PrayerTimes(coordinates, components, params);
       final ymd = '${date.year}${_two(date.month)}${_two(date.day)}';
 
       final byName = <String, DateTime>{

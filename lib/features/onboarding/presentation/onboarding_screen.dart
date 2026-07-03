@@ -12,6 +12,7 @@ import 'package:memoring/core/widgets/glass_button.dart';
 import 'package:memoring/core/widgets/glass_card.dart';
 import 'package:memoring/features/onboarding/domain/user_profile.dart';
 import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
+import 'package:memoring/features/prayer/presentation/city_picker.dart';
 import 'package:memoring/features/prayer/presentation/prayer_providers.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
@@ -30,6 +31,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Religion _religion = Religion.undisclosed;
   bool _prayer = false;
   ReminderIntensity _prayerIntensity = ReminderIntensity.medium;
+  String _prayerCity = 'Doha';
   bool _saving = false;
   bool _granting = false;
   bool? _notifOk;
@@ -91,6 +93,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       religion: _religion,
       prayerReminders: prayerOn,
       prayerIntensity: _prayerIntensity,
+      prayerCity: _prayerCity,
     );
     await ref.read(profileRepositoryProvider).save(profile);
     ref.invalidate(profileProvider);
@@ -198,6 +201,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ),
               ),
               if (_prayer) ...[
+                const SizedBox(height: AppSpacing.md),
+                GlassCard(
+                  onTap: () async {
+                    final city = await showCityPicker(context);
+                    if (city != null) {
+                      setState(() => _prayerCity = city.name);
+                    }
+                  },
+                  child: Row(
+                    children: [
+                      const Icon(Icons.location_city_outlined,
+                          color: AppColors.mutedWhite, size: 20),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text('City: $_prayerCity',
+                            style: AppTypography.bodyMedium),
+                      ),
+                      const Icon(Icons.chevron_right,
+                          color: AppColors.mutedWhite),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.md),
                 Text('How each prayer alert behaves', style: AppTypography.caption),
                 const SizedBox(height: AppSpacing.sm),

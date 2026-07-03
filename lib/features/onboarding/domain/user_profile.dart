@@ -13,6 +13,7 @@ final class UserProfile {
     this.religion = Religion.undisclosed,
     this.prayerReminders = false,
     this.prayerIntensity = ReminderIntensity.medium,
+    this.prayerCity = 'Doha',
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -27,6 +28,7 @@ final class UserProfile {
           Religion.values.byName(json['religion'] as String? ?? 'undisclosed'),
       prayerReminders: json['prayerReminders'] as bool? ?? false,
       prayerIntensity: ReminderIntensity.values.byName(intensityName),
+      prayerCity: json['prayerCity'] as String? ?? 'Doha',
     );
   }
 
@@ -39,6 +41,9 @@ final class UserProfile {
   /// high = selfie at a mosque to dismiss.
   final ReminderIntensity prayerIntensity;
 
+  /// City used for prayer-time calculation (see prayer_cities.dart).
+  final String prayerCity;
+
   bool get isMuslim => religion == Religion.muslim;
 
   Map<String, dynamic> toJson() => {
@@ -47,6 +52,7 @@ final class UserProfile {
         'religion': religion.name,
         'prayerReminders': prayerReminders,
         'prayerIntensity': prayerIntensity.name,
+        'prayerCity': prayerCity,
       };
 
   UserProfile copyWith({
@@ -55,6 +61,7 @@ final class UserProfile {
     Religion? religion,
     bool? prayerReminders,
     ReminderIntensity? prayerIntensity,
+    String? prayerCity,
   }) =>
       UserProfile(
         name: name ?? this.name,
@@ -62,5 +69,6 @@ final class UserProfile {
         religion: religion ?? this.religion,
         prayerReminders: prayerReminders ?? this.prayerReminders,
         prayerIntensity: prayerIntensity ?? this.prayerIntensity,
+        prayerCity: prayerCity ?? this.prayerCity,
       );
 }
