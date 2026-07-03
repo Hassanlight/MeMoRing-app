@@ -71,7 +71,7 @@ Status legend: ✅ done in code/CI · 🟡 you must do it in the store console �
 2. Upload the **SIGNED** APK: `app-arm64-v8a-release.apk` (after signing secrets are
    set, every CI build is release-signed). AppGallery accepts APK directly.
    Optionally also upload the armeabi-v7a APK for old devices.
-3. Privacy policy URL: https://layalalshaykh-spec.github.io/memoring-site/
+3. Privacy policy URL: https://hassanlight.github.io/memoring-site/
 4. Permissions declaration — justify each: notifications/exact alarm (core reminder
    function), camera (photo reminders + confirmation selfies), microphone (voice
    dictation), boot (restore alarms after restart). No location, no contacts.
