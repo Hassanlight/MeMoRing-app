@@ -74,7 +74,10 @@ jobs:
           fi
 
       # Huawei Ads Kit resolves from Huawei's maven repo — add it to the
-      # generated settings.gradle.kts repositories blocks.
+      # generated settings.gradle.kts repositories blocks. Also exclude
+      # ads-installreferrer: it shares the namespace 'com.huawei.ads' with
+      # ads-identifier (Huawei packaging flaw) which modern AGP hard-rejects;
+      # banner serving does not need install-referrer attribution.
       - name: Add Huawei maven repository
         run: |
           S=android/settings.gradle.kts
@@ -86,6 +89,9 @@ jobs:
           if [ -f "$B" ] && grep -q "repositories" "$B"; then
             sed -i 's#mavenCentral()#mavenCentral()\n        maven(url = "https://developer.huawei.com/repo/")#g' "$B" || true
           fi
+          APP=android/app/build.gradle.kts
+          printf '\nconfigurations.all {\n    exclude(group = "com.huawei.hms", module = "ads-installreferrer")\n}\n' >> "$APP"
+          echo "excluded ads-installreferrer"; tail -4 "$APP"
 
       # Replace the default manifest with one that enables full-screen alerts,
       # exact alarms, and reboot rescheduling.
