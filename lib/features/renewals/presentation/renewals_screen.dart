@@ -76,9 +76,7 @@ class _RenewalsScreenState extends ConsumerState<RenewalsScreen> {
     if (expiry == null || !mounted) return;
 
     final ctrl = ref.read(remindersControllerProvider);
-    final expiryText = formatWhen(DateTime(expiry.year, expiry.month, expiry.day, 9))
-        .split(' · ')
-        .first;
+    final expiryText = '${expiry.day}/${expiry.month}/${expiry.year}';
     final slug = _slug(name);
     final offsets = [
       (const Duration(days: 30), '1 month', '1m'),

@@ -251,7 +251,14 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
           ),
           child: FadeTransition(
             opacity: _anim,
-            child: Padding(
+            // Scrollable + min-height so the keyboard (Wake math input) can
+            // never overflow the layout on small screens.
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Padding(
               padding: const EdgeInsets.all(AppSpacing.screen),
               child: Column(
                 children: [
@@ -304,6 +311,10 @@ class _FullScreenAlertState extends ConsumerState<FullScreenAlert>
                   else
                     _ringActions(controller, reminder, stopAndPop),
                 ],
+              ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

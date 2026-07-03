@@ -63,6 +63,13 @@ class _FakeNotifications implements NotificationService {
   Future<void> showNow() async {}
   @override
   Future<bool> notificationsAllowed() async => true;
+  @override
+  Future<void> schedulePlain({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime when,
+  }) async {}
 }
 
 Widget _app() => ProviderScope(

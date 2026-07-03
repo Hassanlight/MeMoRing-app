@@ -59,12 +59,17 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
       recurrence: const Recurrence(RecurrenceType.yearly),
       intensity: ReminderIntensity.medium,
     );
-    // Evening before, 7pm — when a gift is still possible.
+    // Evening before, 7pm — when a gift is still possible. If that evening has
+    // already passed (birthday is today/tomorrow), start from next year.
     final dayOf = _nextOccurrence(bday.month, bday.day, 19);
+    var eve = dayOf.subtract(const Duration(days: 1));
+    if (!eve.isAfter(DateTime.now())) {
+      eve = DateTime(eve.year + 1, eve.month, eve.day, 19);
+    }
     await ctrl.create(
       id: 'person_${slug}_eve',
       text: "Tomorrow is $name's birthday — get something today 🎁",
-      fireAt: dayOf.subtract(const Duration(days: 1)),
+      fireAt: eve,
       recurrence: const Recurrence(RecurrenceType.yearly),
       intensity: ReminderIntensity.medium,
     );
