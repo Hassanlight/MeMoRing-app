@@ -10,6 +10,7 @@ import 'package:memoring/app/router/app_router.dart';
 import 'package:memoring/core/remote_config.dart';
 import 'package:memoring/core/telemetry.dart';
 import 'package:memoring/features/alert/presentation/full_screen_alert.dart';
+import 'package:memoring/features/announcements/announcement_center.dart';
 import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
 import 'package:memoring/features/prayer/presentation/prayer_providers.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
@@ -131,5 +132,10 @@ Future<void> main() async {
         when: preview,
       );
     }
+
+    // Owner announcements: check now + every few minutes; an unseen one takes
+    // over the screen wherever the user is (started last so its dialog never
+    // fights the permission prompts above).
+    AnnouncementCenter.start(notifications);
   });
 }
