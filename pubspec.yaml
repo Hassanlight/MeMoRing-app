@@ -50,6 +50,8 @@ dependencies:
   # Backend telemetry / feedback / announcements over plain HTTPS (Supabase REST)
   # — works on every device including Huawei (no Google services needed).
   http: ^1.2.0
+  # Opens the store link on the force-update screen
+  url_launcher: ^6.2.0
 
 dev_dependencies:
   flutter_test:

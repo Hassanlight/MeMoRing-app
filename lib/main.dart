@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:memoring/app/app.dart';
 import 'package:memoring/app/router/app_router.dart';
+import 'package:memoring/core/remote_config.dart';
 import 'package:memoring/core/telemetry.dart';
 import 'package:memoring/features/alert/presentation/full_screen_alert.dart';
 import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
@@ -29,9 +30,15 @@ Future<void> main() async {
   await Telemetry.loadPreference();
   Telemetry.log('app_open');
 
+  // Owner remote controls (ads on/off, force-update). Fail-open on any error.
+  await RemoteConfig.load();
+
   // First run → show onboarding; otherwise straight to the chat.
   final profile = await container.read(profileRepositoryProvider).load();
   appInitialLocation = profile == null ? '/onboarding' : '/';
+
+  // Owner has forced an update → block the app behind the update screen.
+  if (RemoteConfig.mustUpdate) appInitialLocation = '/update';
 
   // Push the alert screen exactly once per reminder, no matter how many launch
   // paths fire (notification tap, full-screen intent, due-checker).

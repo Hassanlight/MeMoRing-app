@@ -5,6 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:memoring/core/remote_config.dart';
 
 /// Google's public TEST banner unit. Replace with your real AdMob unit id
 /// before store release (and swap the APPLICATION_ID in the manifest).
@@ -41,6 +42,12 @@ class _AdBannerState extends State<AdBanner> {
   }
 
   Future<void> _load() async {
+    // Owner master switch — if ads are turned off remotely, show nothing and
+    // don't fall back to Huawei ads either.
+    if (!RemoteConfig.adsEnabled) {
+      if (mounted) setState(() => _loaded = false);
+      return;
+    }
     try {
       if (!_adsInitialized) {
         await MobileAds.instance.initialize();

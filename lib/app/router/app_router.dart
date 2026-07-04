@@ -17,6 +17,7 @@ import 'package:memoring/features/reminders/presentation/home_screen.dart';
 import 'package:memoring/features/reminders/presentation/reminder_detail_screen.dart';
 import 'package:memoring/features/renewals/presentation/renewals_screen.dart';
 import 'package:memoring/features/settings/presentation/settings_screen.dart';
+import 'package:memoring/features/update/presentation/update_gate_screen.dart';
 import 'package:memoring/features/vault/presentation/vault_screen.dart';
 
 /// Where the app opens — set by main() before the router is built ('/onboarding'
@@ -52,6 +53,7 @@ GoRouter _buildRouter() {
           path: '/dashboard',
           builder: (_, __) => const PinGate(child: DashboardScreen())),
       GoRoute(path: '/feedback', builder: (_, __) => const FeedbackScreen()),
+      GoRoute(path: '/update', builder: (_, __) => const UpdateGateScreen()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
       GoRoute(
         path: '/alert/:id',

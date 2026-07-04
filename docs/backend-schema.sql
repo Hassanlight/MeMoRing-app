@@ -46,3 +46,19 @@ drop policy if exists announcements_read   on public.announcements;
 create policy events_insert      on public.events        for insert to anon with check (true);
 create policy feedback_insert    on public.feedback      for insert to anon with check (true);
 create policy announcements_read on public.announcements for select to anon using (active = true);
+
+-- === Remote control (owner config) — run this in Supabase SQL editor ===
+create table if not exists public.app_config (
+  id int primary key default 1,
+  ads_enabled boolean not null default true,
+  min_version_code int not null default 0,
+  update_required boolean not null default false,
+  update_message text default 'A new version of Memoring is available. Please update to continue.',
+  update_url text default '',
+  updated_at timestamptz default now(),
+  constraint app_config_single check (id = 1)
+);
+insert into public.app_config (id) values (1) on conflict (id) do nothing;
+alter table public.app_config enable row level security;
+drop policy if exists app_config_read on public.app_config;
+create policy app_config_read on public.app_config for select to anon using (true);
