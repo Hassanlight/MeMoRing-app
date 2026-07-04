@@ -18,6 +18,7 @@ import 'package:memoring/features/assistant/domain/chat_message.dart';
 import 'package:memoring/features/assistant/presentation/chat_controller.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/presentation/widgets/reminder_card.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -38,6 +39,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   ReminderIntensity _intensity = ReminderIntensity.low;
   bool _busy = false;
   bool _listening = false;
+  bool _hadResult = false;
 
   @override
   void initState() {
@@ -93,44 +95,67 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (mounted) _inputFocus.requestFocus();
   }
 
+  void _voiceHint(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   Future<bool> _ensureSpeech() async {
-    if (_speechAvailable != null) return _speechAvailable!;
-    _speechAvailable = await _speech.initialize(
+    // Only a SUCCESSFUL init is cached. A failed one (permission not granted
+    // yet, recognizer busy) must be retried on the next mic tap, otherwise a
+    // bad first attempt disables voice for the whole app session.
+    if (_speechAvailable == true) return true;
+    final ok = await _speech.initialize(
       onStatus: (s) {
-        if ((s == 'done' || s == 'notListening') && mounted) {
+        if (s == 'done' && mounted && _listening) {
           setState(() => _listening = false);
+          if (!_hadResult) {
+            _voiceHint("Didn't catch that — tap the mic and try again.");
+          }
         }
       },
       onError: (_) {
-        if (mounted) setState(() => _listening = false);
+        if (mounted && _listening) {
+          setState(() => _listening = false);
+          if (!_hadResult) {
+            _voiceHint("Didn't catch that — tap the mic and try again.");
+          }
+        }
       },
     );
-    return _speechAvailable!;
+    if (ok) _speechAvailable = true;
+    return ok;
   }
 
   Future<void> _toggleMic() async {
     if (_listening) {
+      setState(() => _listening = false);
       await _speech.stop();
-      if (mounted) setState(() => _listening = false);
+      return;
+    }
+    final mic = await Permission.microphone.request();
+    if (!mic.isGranted) {
+      _voiceHint(
+          'Voice input needs microphone permission — allow it in system Settings.');
       return;
     }
     final available = await _ensureSpeech();
     if (!available) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Voice input needs microphone permission')),
-        );
-      }
+      // Permission is fine but the device has no working speech recognizer
+      // (e.g. Huawei without Google's speech service).
+      _voiceHint('Speech recognition is not available on this device.');
       return;
     }
+    _hadResult = false;
     setState(() => _listening = true);
-    // Record the whole phrase, then take only the recognizer's FINAL result —
-    // it is re-scored after the speaker finishes and is far more accurate than
-    // the live partial guesses (which looked garbled while typing out).
+    // Partial results are required for pauseFor's silence detection to work
+    // on Android, but the field is only filled from the recognizer's FINAL
+    // result — it is re-scored after the speaker finishes and is far more
+    // accurate than the live partial guesses (which looked garbled).
     await _speech.listen(
       onResult: (r) {
         if (!r.finalResult) return;
+        _hadResult = true;
         _input.text = r.recognizedWords;
         _input.selection =
             TextSelection.collapsed(offset: _input.text.length);
@@ -139,7 +164,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 4),
       listenOptions: SpeechListenOptions(
-        partialResults: false,
+        partialResults: true,
         listenMode: ListenMode.dictation,
         cancelOnError: true,
       ),
