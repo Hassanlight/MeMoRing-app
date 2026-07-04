@@ -87,7 +87,7 @@ Widget _app(Widget child, _FakeRepo repo) => ProviderScope(
 void main() {
   testWidgets('hub shows every life card', (tester) async {
     // Tall viewport so the lazy list builds every card.
-    tester.view.physicalSize = const Size(800, 2200);
+    tester.view.physicalSize = const Size(800, 3200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -102,7 +102,7 @@ void main() {
   });
 
   testWidgets('renewals shows all document templates', (tester) async {
-    tester.view.physicalSize = const Size(800, 2200);
+    tester.view.physicalSize = const Size(800, 3200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 

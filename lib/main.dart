@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:memoring/app/app.dart';
 import 'package:memoring/app/router/app_router.dart';
+import 'package:memoring/core/telemetry.dart';
 import 'package:memoring/features/alert/presentation/full_screen_alert.dart';
 import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
 import 'package:memoring/features/prayer/presentation/prayer_providers.dart';
@@ -24,6 +25,9 @@ Future<void> main() async {
   tz.setLocalLocation(tz.getLocation('UTC'));
 
   final container = ProviderContainer();
+
+  await Telemetry.loadPreference();
+  Telemetry.log('app_open');
 
   // First run → show onboarding; otherwise straight to the chat.
   final profile = await container.read(profileRepositoryProvider).load();

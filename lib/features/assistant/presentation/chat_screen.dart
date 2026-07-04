@@ -13,6 +13,7 @@ import 'package:memoring/app/theme/app_spacing.dart';
 import 'package:memoring/app/theme/app_typography.dart';
 import 'package:memoring/core/image_store.dart';
 import 'package:memoring/core/widgets/glass_button.dart';
+import 'package:memoring/features/announcements/presentation/announcement_banner.dart';
 import 'package:memoring/features/assistant/domain/chat_message.dart';
 import 'package:memoring/features/assistant/presentation/chat_controller.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
@@ -190,6 +191,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            const AnnouncementBanner(),
             Expanded(
               child: ListView.builder(
                 controller: _scroll,

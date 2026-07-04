@@ -12,6 +12,7 @@ import 'package:memoring/app/theme/app_colors.dart';
 import 'package:memoring/app/theme/app_spacing.dart';
 import 'package:memoring/app/theme/app_typography.dart';
 import 'package:memoring/core/security/pin_store.dart';
+import 'package:memoring/core/telemetry.dart';
 import 'package:memoring/core/widgets/glass_card.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
 import 'package:memoring/features/vault/data/vault_store.dart';
@@ -229,6 +230,43 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       'apps cannot read them, they are not in the gallery, and '
                       'system backups are disabled.',
                       style: AppTypography.caption),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+
+            Text('Usage data', style: AppTypography.caption),
+            const SizedBox(height: AppSpacing.md),
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.insights_outlined,
+                          color: AppColors.mutedWhite, size: 20),
+                      const SizedBox(width: AppSpacing.md),
+                      const Expanded(
+                        child: Text('Share anonymous usage data',
+                            style: AppTypography.bodyMedium),
+                      ),
+                      Switch(
+                        value: Telemetry.enabled,
+                        activeColor: AppColors.shinyWhite,
+                        onChanged: (v) async {
+                          await Telemetry.setEnabled(v);
+                          if (mounted) setState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Sends only anonymous counts (e.g. app opened, reminder '
+                    'created) to help improve the app. No reminders, photos, or '
+                    'personal details are ever included.',
+                    style: AppTypography.caption,
+                  ),
                 ],
               ),
             ),

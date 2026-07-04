@@ -21,6 +21,7 @@ class HubScreen extends StatelessWidget {
       (Icons.photo_library_outlined, 'Memories', 'Photos from things you completed', '/memories'),
       (Icons.insights_outlined, 'Insights', 'What you remind yourself about most', '/analytics'),
       (Icons.shield_outlined, 'Dashboard', 'Your data, app lock, storage — all private', '/dashboard'),
+      (Icons.feedback_outlined, 'Send feedback', 'Tell us what to improve — we read every message', '/feedback'),
       (Icons.settings_outlined, 'Settings', 'Alerts, prayer times, permissions', '/settings'),
     ];
 

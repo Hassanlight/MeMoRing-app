@@ -7,6 +7,7 @@ import 'package:memoring/app/home_shell.dart';
 import 'package:memoring/core/security/pin_gate.dart';
 import 'package:memoring/features/alert/presentation/full_screen_alert.dart';
 import 'package:memoring/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:memoring/features/feedback/presentation/feedback_screen.dart';
 import 'package:memoring/features/analytics/presentation/analytics_screen.dart';
 import 'package:memoring/features/medicine/presentation/medicine_screen.dart';
 import 'package:memoring/features/memories/presentation/memories_screen.dart';
@@ -50,6 +51,7 @@ GoRouter _buildRouter() {
       GoRoute(
           path: '/dashboard',
           builder: (_, __) => const PinGate(child: DashboardScreen())),
+      GoRoute(path: '/feedback', builder: (_, __) => const FeedbackScreen()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
       GoRoute(
         path: '/alert/:id',

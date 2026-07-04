@@ -47,6 +47,9 @@ dependencies:
   permission_handler: ^11.3.0
   # SHA-256 for the local app-lock PIN (pure Dart, no native code)
   crypto: ^3.0.3
+  # Backend telemetry / feedback / announcements over plain HTTPS (Supabase REST)
+  # — works on every device including Huawei (no Google services needed).
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:

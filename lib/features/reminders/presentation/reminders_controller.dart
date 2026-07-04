@@ -5,6 +5,7 @@ library;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:memoring/core/result.dart';
+import 'package:memoring/core/telemetry.dart';
 import 'package:memoring/features/reminders/data/file_reminder_repository.dart';
 import 'package:memoring/features/reminders/domain/recurrence.dart';
 import 'package:memoring/features/reminders/domain/reminder.dart';
@@ -99,6 +100,12 @@ class RemindersController {
     );
     await _repo.add(reminder);
     lastScheduleWarning = await _notifications.schedule(reminder);
+    // Anonymous usage signal — counts only, no reminder content.
+    Telemetry.log('reminder_created', props: {
+      'intensity': intensity.name,
+      'recurring': recurrence.isRecurring,
+      'has_photo': imagePath != null,
+    });
     return Ok(reminder);
   }
 
