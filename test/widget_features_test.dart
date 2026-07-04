@@ -66,6 +66,8 @@ class _FakeNotifications implements NotificationService {
   @override
   Future<void> showNow() async {}
   @override
+  Future<void> showReminderNow(Reminder reminder) async {}
+  @override
   Future<bool> notificationsAllowed() async => true;
   @override
   Future<void> schedulePlain({

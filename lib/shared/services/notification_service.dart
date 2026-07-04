@@ -40,6 +40,11 @@ abstract interface class NotificationService {
   /// display/sound pipeline from alarm-permission/battery issues.
   Future<void> showNow();
 
+  /// Re-posts a due reminder's alert immediately (full intensity details).
+  /// Used to re-ring task-gated alarms (selfie/wake) that were swiped away
+  /// before the task was completed.
+  Future<void> showReminderNow(Reminder reminder);
+
   /// Whether the OS currently allows this app to post notifications.
   Future<bool> notificationsAllowed();
 }
@@ -129,10 +134,12 @@ class LocalNotificationService implements NotificationService {
     String bigText = '',
   }) {
     final hasImage = imagePath != null && File(imagePath).existsSync();
-    // low = one tone; medium/high = loop the sound until acted on;
-    // high = ongoing (can't be swiped away — must confirm with a selfie).
+    // low = one tone; medium/high/wake = loop the sound until acted on;
+    // high/wake = ongoing (can't be swiped away, tap doesn't auto-cancel —
+    // the alarm only stops once the task is done: selfie or math).
     final loops = sound && intensity != ReminderIntensity.low;
-    final ongoing = intensity == ReminderIntensity.high;
+    final ongoing = intensity == ReminderIntensity.high ||
+        intensity == ReminderIntensity.wake;
     return NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,
@@ -264,6 +271,26 @@ class LocalNotificationService implements NotificationService {
       'Instant test alert — you should hear this now.',
       _details(sound: true),
     );
+  }
+
+  @override
+  Future<void> showReminderNow(Reminder reminder) async {
+    try {
+      await _plugin.show(
+        _intId(reminder.id),
+        'Memoring',
+        reminder.text,
+        _details(
+          sound: reminder.soundEnabled,
+          intensity: reminder.intensity,
+          imagePath: reminder.imagePath,
+          bigText: reminder.text,
+        ),
+        payload: reminder.id,
+      );
+    } on Object {
+      // Best-effort — the in-app takeover still fires from the due-checker.
+    }
   }
 
   @override

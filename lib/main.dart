@@ -13,6 +13,7 @@ import 'package:memoring/features/alert/presentation/full_screen_alert.dart';
 import 'package:memoring/features/announcements/announcement_center.dart';
 import 'package:memoring/features/onboarding/presentation/profile_providers.dart';
 import 'package:memoring/features/prayer/presentation/prayer_providers.dart';
+import 'package:memoring/features/reminders/domain/reminder.dart';
 import 'package:memoring/features/reminders/presentation/reminders_controller.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -65,14 +66,38 @@ Future<void> main() async {
 
   // While the app is open, take over the screen with the full-screen note the
   // moment a reminder is due (the OS notification covers locked/background).
+  // Task-gated alarms (selfie/wake) also get a watchdog: if the notification
+  // was swiped away or the alert escaped before the task was done, the alarm
+  // re-rings every minute for up to 30 minutes past due — it cannot be
+  // silenced by anything except completing the task.
   final alerted = <String>{};
+  final lastNag = <String, DateTime>{};
   Timer.periodic(const Duration(seconds: 10), (_) async {
     final repo = container.read(reminderRepositoryProvider);
     final now = DateTime.now();
     for (final r in await repo.getAll()) {
-      if (!r.isActive || r.isCompleted || alerted.contains(r.id)) continue;
+      if (!r.isActive || r.isCompleted) continue;
       final due = r.effectiveFireAt;
-      if (!due.isAfter(now) && now.difference(due) < const Duration(minutes: 2)) {
+      if (due.isAfter(now)) continue;
+      final sinceDue = now.difference(due);
+
+      final tough = r.intensity == ReminderIntensity.high ||
+          r.intensity == ReminderIntensity.wake;
+      if (tough && sinceDue < const Duration(minutes: 30)) {
+        if (activeAlertId != r.id) {
+          openAlert(r.id);
+          final last = lastNag[r.id];
+          if (last == null ||
+              now.difference(last) >= const Duration(minutes: 1)) {
+            lastNag[r.id] = now;
+            final notifications = container.read(notificationServiceProvider);
+            await notifications.showReminderNow(r);
+          }
+        }
+        break; // one takeover at a time
+      }
+
+      if (!alerted.contains(r.id) && sinceDue < const Duration(minutes: 2)) {
         alerted.add(r.id);
         openAlert(r.id);
         break; // one takeover at a time
