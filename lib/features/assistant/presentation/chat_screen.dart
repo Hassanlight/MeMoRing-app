@@ -45,7 +45,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void initState() {
     super.initState();
     // Pre-warm the speech engine so the first mic tap starts instantly.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureSpeech());
+    // Failures are ignored — the mic tap retries and reports its own errors.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _ensureSpeech().catchError((Object _) => false),
+    );
   }
 
   @override
@@ -105,35 +108,52 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     // yet, recognizer busy) must be retried on the next mic tap, otherwise a
     // bad first attempt disables voice for the whole app session.
     if (_speechAvailable == true) return true;
-    final ok = await _speech.initialize(
-      onStatus: (s) {
-        if (s == 'done' && mounted && _listening) {
-          setState(() => _listening = false);
-          if (!_hadResult) {
-            _voiceHint("Didn't catch that — tap the mic and try again.");
-          }
-        }
-      },
-      onError: (_) {
-        if (mounted && _listening) {
-          setState(() => _listening = false);
-          if (!_hadResult) {
-            _voiceHint("Didn't catch that — tap the mic and try again.");
-          }
-        }
-      },
-    );
+    final ok = await _speech
+        .initialize(
+          onStatus: (s) {
+            if (s == 'done' && mounted && _listening) {
+              setState(() => _listening = false);
+              if (!_hadResult) {
+                _voiceHint("Didn't catch that — tap the mic and try again.");
+              }
+            }
+          },
+          onError: (e) {
+            if (mounted && _listening) {
+              setState(() => _listening = false);
+              if (!_hadResult) {
+                // The raw engine error names the real cause (no_match, busy,
+                // network, client…) — show it instead of guessing.
+                _voiceHint('Mic error: ${e.errorMsg} — tap and try again.');
+              }
+            }
+          },
+        )
+        .timeout(const Duration(seconds: 10));
     if (ok) _speechAvailable = true;
     return ok;
   }
 
+  /// Every tap must end in visible feedback — either listening starts (red
+  /// mic + hint) or a message says exactly why not. A silent tap is a bug.
   Future<void> _toggleMic() async {
+    try {
+      await _toggleMicInner();
+    } on Object catch (e) {
+      if (mounted) setState(() => _listening = false);
+      _voiceHint('Voice failed to start: $e');
+    }
+  }
+
+  Future<void> _toggleMicInner() async {
     if (_listening) {
       setState(() => _listening = false);
       await _speech.stop();
       return;
     }
-    final mic = await Permission.microphone.request();
+    final mic = await Permission.microphone
+        .request()
+        .timeout(const Duration(seconds: 30));
     if (!mic.isGranted) {
       _voiceHint(
           'Voice input needs microphone permission — allow it in system Settings.');
