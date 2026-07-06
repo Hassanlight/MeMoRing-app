@@ -73,6 +73,11 @@ Future<void> main() async {
   final alerted = <String>{};
   final lastNag = <String, DateTime>{};
   Timer.periodic(const Duration(seconds: 10), (_) async {
+    // In the background no frames build, so a pushed alert route would not
+    // mount (its on-screen guard never arms) and pushes would pile up —
+    // only navigate while resumed; the re-posted notification covers the rest.
+    final resumed =
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     final repo = container.read(reminderRepositoryProvider);
     final now = DateTime.now();
     for (final r in await repo.getAll()) {
@@ -85,7 +90,7 @@ Future<void> main() async {
           r.intensity == ReminderIntensity.wake;
       if (tough && sinceDue < const Duration(minutes: 30)) {
         if (activeAlertId != r.id) {
-          openAlert(r.id);
+          if (resumed) openAlert(r.id);
           final last = lastNag[r.id];
           if (last == null ||
               now.difference(last) >= const Duration(minutes: 1)) {
@@ -99,7 +104,7 @@ Future<void> main() async {
 
       if (!alerted.contains(r.id) && sinceDue < const Duration(minutes: 2)) {
         alerted.add(r.id);
-        openAlert(r.id);
+        if (resumed) openAlert(r.id);
         break; // one takeover at a time
       }
     }
