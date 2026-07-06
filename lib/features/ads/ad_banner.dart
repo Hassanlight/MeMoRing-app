@@ -1,7 +1,12 @@
 /// A fail-safe AdMob banner. Renders nothing (zero height) whenever ads can't
 /// load — offline, no fill, or devices without Google services (Huawei), so the
 /// app never depends on ads to function. Never used on the alert screen.
+/// Before the first ad, Google's UMP consent flow runs (shows a consent form
+/// only where required, e.g. EEA/UK) — a Play-policy requirement. Fail-open:
+/// consent problems never block the app, only that ad load.
 library;
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -12,6 +17,25 @@ import 'package:memoring/core/remote_config.dart';
 const String kBannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
 
 bool _adsInitialized = false;
+bool _consentGathered = false;
+
+/// Runs Google's UMP consent flow once per app run. Shows the consent form
+/// only where legally required; everywhere else it returns immediately.
+Future<void> _gatherConsent() async {
+  if (_consentGathered) return;
+  final done = Completer<void>();
+  ConsentInformation.instance.requestConsentInfoUpdate(
+    ConsentRequestParameters(),
+    () => ConsentForm.loadAndShowConsentFormIfRequired((_) {
+      if (!done.isCompleted) done.complete();
+    }),
+    (_) {
+      if (!done.isCompleted) done.complete();
+    },
+  );
+  await done.future.timeout(const Duration(seconds: 20));
+  _consentGathered = true;
+}
 
 class AdBanner extends StatefulWidget {
   const AdBanner({this.onUnavailable, super.key});
@@ -50,6 +74,12 @@ class _AdBannerState extends State<AdBanner> {
     }
     try {
       if (!_adsInitialized) {
+        try {
+          await _gatherConsent();
+        } on Object {
+          // Consent flow unavailable/timed out → proceed; UMP only gates
+          // regions that require the form, and it retries next app run.
+        }
         await MobileAds.instance.initialize();
         _adsInitialized = true;
       }

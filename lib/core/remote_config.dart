@@ -12,7 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:memoring/core/backend_config.dart';
 
 /// Bump this by 1 every release (matches the build number in pubspec version).
-const int kVersionCode = 2;
+const int kVersionCode = 3;
 
 class RemoteConfig {
   static bool adsEnabled = true;

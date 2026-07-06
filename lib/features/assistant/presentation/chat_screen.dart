@@ -2,6 +2,7 @@
 /// reminders by typing, with optional photo attachments.
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import 'package:memoring/app/theme/app_colors.dart';
 import 'package:memoring/app/theme/app_spacing.dart';
 import 'package:memoring/app/theme/app_typography.dart';
 import 'package:memoring/core/image_store.dart';
+import 'package:memoring/core/telemetry.dart';
 import 'package:memoring/core/widgets/glass_button.dart';
 import 'package:memoring/features/announcements/presentation/announcement_banner.dart';
 import 'package:memoring/features/assistant/domain/chat_message.dart';
@@ -99,6 +101,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _voiceHint(String msg) {
+    // Every voice failure also reports home (anonymous, message text only) so
+    // the owner dashboard shows the real device error without user screenshots.
+    unawaited(Telemetry.log('voice_error', props: {'msg': msg}));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
