@@ -42,20 +42,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _busy = false;
   bool _listening = false;
   bool _hadResult = false;
+  String _lastWords = '';
 
-  @override
-  void initState() {
-    super.initState();
-    // Pre-warm the speech engine so the first mic tap starts instantly.
-    // Failures are ignored — the mic tap retries and reports its own errors.
-    // Skipped under flutter_test: the unmocked platform channel never answers,
-    // so the timeout timer stays pending and fails every chat widget test.
-    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _ensureSpeech().catchError((Object _) => false),
-      );
-    }
-  }
+  // NO pre-warm: initializing the speech engine at app open raced the other
+  // startup permission requests and could wedge the engine for the whole
+  // session (the reported "tap does nothing"). The first tap pays ~300ms
+  // instead — reliability beats warmth.
 
   @override
   void dispose() {
@@ -112,33 +104,51 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  /// Puts recognized words into the input field for the user to review and
+  /// send — voice never creates a reminder by itself.
+  void _applyTranscript(String words) {
+    final t = words.trim();
+    if (t.isEmpty) return;
+    _hadResult = true;
+    _input.text = t;
+    _input.selection = TextSelection.collapsed(offset: t.length);
+    unawaited(Telemetry.log('voice_used'));
+  }
+
+  /// Ends a listening session in the UI, salvaging the best partial words if
+  /// the engine never flagged a final result (some Samsung engines skip it).
+  void _finishListening() {
+    if (!mounted || !_listening) return;
+    setState(() => _listening = false);
+    if (!_hadResult && _lastWords.isNotEmpty) {
+      _applyTranscript(_lastWords);
+    } else if (!_hadResult) {
+      _voiceHint("Didn't catch that — tap the mic and try again.");
+    }
+  }
+
   Future<bool> _ensureSpeech() async {
-    // Only a SUCCESSFUL init is cached. A failed one (permission not granted
-    // yet, recognizer busy) must be retried on the next mic tap, otherwise a
-    // bad first attempt disables voice for the whole app session.
+    // Only a SUCCESSFUL init is cached. A failed one (recognizer busy, service
+    // binding hiccup) must be retried, otherwise one bad attempt disables
+    // voice for the whole app session.
     if (_speechAvailable == true) return true;
     final ok = await _speech
         .initialize(
           onStatus: (s) {
-            if (s == 'done' && mounted && _listening) {
-              setState(() => _listening = false);
-              if (!_hadResult) {
-                _voiceHint("Didn't catch that — tap the mic and try again.");
-              }
-            }
+            if (s == 'done') _finishListening();
           },
           onError: (e) {
-            if (mounted && _listening) {
+            if (mounted && _listening && !_hadResult && _lastWords.isEmpty) {
               setState(() => _listening = false);
-              if (!_hadResult) {
-                // The raw engine error names the real cause (no_match, busy,
-                // network, client…) — show it instead of guessing.
-                _voiceHint('Mic error: ${e.errorMsg} — tap and try again.');
-              }
+              // The raw engine error names the real cause (no_match, busy,
+              // network, client…) — show it instead of guessing.
+              _voiceHint('Mic error: ${e.errorMsg} — tap and try again.');
+            } else {
+              _finishListening();
             }
           },
         )
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 8));
     if (ok) _speechAvailable = true;
     return ok;
   }
@@ -156,38 +166,67 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<void> _toggleMicInner() async {
     if (_listening) {
-      setState(() => _listening = false);
+      // Manual stop = "I'm done speaking": stop, give the engine a moment to
+      // deliver its final words, then salvage the best partial if it doesn't.
       await _speech.stop();
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+      _finishListening();
       return;
     }
-    final mic = await Permission.microphone
-        .request()
-        .timeout(const Duration(seconds: 30));
-    if (!mic.isGranted) {
-      _voiceHint(
-          'Voice input needs microphone permission — allow it in system Settings.');
-      return;
+
+    // Ask for the mic permission, but never let the permission plugin block
+    // voice: on any plugin error, continue — the speech engine requests the
+    // permission itself during initialize.
+    try {
+      final mic = await Permission.microphone
+          .request()
+          .timeout(const Duration(seconds: 30));
+      if (mic.isPermanentlyDenied || mic.isDenied) {
+        _voiceHint(
+            'Voice input needs microphone permission — allow it in system Settings.');
+        return;
+      }
+    } on Object {
+      // Fall through — initialize() handles the permission on its own.
     }
-    final available = await _ensureSpeech();
+
+    // Engine init with one automatic retry: Samsung's recognizer binding can
+    // fail transiently right after app start.
+    var available = false;
+    try {
+      available = await _ensureSpeech();
+    } on Object {
+      available = false;
+    }
+    if (!available) {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      try {
+        available = await _ensureSpeech();
+      } on Object {
+        available = false;
+      }
+    }
     if (!available) {
       // Permission is fine but the device has no working speech recognizer
-      // (e.g. Huawei without Google's speech service).
+      // (e.g. Huawei without Google's speech service, or it isn't answering).
       _voiceHint('Speech recognition is not available on this device.');
       return;
     }
+
     _hadResult = false;
+    _lastWords = '';
     setState(() => _listening = true);
-    // Partial results are required for pauseFor's silence detection to work
-    // on Android, but the field is only filled from the recognizer's FINAL
-    // result — it is re-scored after the speaker finishes and is far more
-    // accurate than the live partial guesses (which looked garbled).
+    // Record-then-extract: partial results keep silence detection working and
+    // are remembered as a fallback, but the field is filled from the FINAL
+    // re-scored result whenever the engine provides one (more accurate).
     await _speech.listen(
       onResult: (r) {
+        if (r.recognizedWords.trim().isNotEmpty) {
+          _lastWords = r.recognizedWords;
+        }
         if (!r.finalResult) return;
-        _hadResult = true;
-        _input.text = r.recognizedWords;
-        _input.selection =
-            TextSelection.collapsed(offset: _input.text.length);
+        _applyTranscript(
+            r.recognizedWords.trim().isNotEmpty ? r.recognizedWords : _lastWords);
         if (mounted) setState(() => _listening = false);
       },
       listenFor: const Duration(seconds: 30),
