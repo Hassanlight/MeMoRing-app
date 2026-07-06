@@ -30,7 +30,9 @@ jobs:
 
       # The android/ folder isn't committed; generate it (and only it) here.
       - name: Generate Android platform files
-        run: flutter create --platforms=android --project-name memoring .
+        # --org sets the applicationId to com.hassan.memoring — Google Play
+        # rejects the default com.example.* package names.
+        run: flutter create --platforms=android --project-name memoring --org com.hassan .
 
       # Remove the default counter-app widget test that `flutter create` adds,
       # since it references a template app we don't have.
