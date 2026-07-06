@@ -110,9 +110,11 @@ jobs:
         run: flutter analyze
         continue-on-error: true
 
-      - name: Run all tests (unit + widget, non-blocking)
+      # Tests are BLOCKING: a red suite must never ship a store artifact.
+      # (They were non-blocking before, which let 4 failing chat tests ride
+      # along unseen — the failure only surfaced during a manual log audit.)
+      - name: Run all tests (unit + widget)
         run: flutter test
-        continue-on-error: true
 
       # Real release signing for the Play Store. Add these repo secrets to enable:
       #   MEMORING_KEYSTORE_BASE64 (base64 of the .jks), MEMORING_KEYSTORE_PASSWORD,
