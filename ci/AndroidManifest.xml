@@ -1,4 +1,14 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- The Huawei Ads SDK injects these two restricted permissions for ad
+         install-attribution. Memoring has no permitted use for them and Google
+         Play rejects apps that carry them, so strip them from the merged
+         manifest. Banners (AdMob and Huawei) serve fine without them. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:node="remove"/>
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"
+        tools:node="remove"/>
+
     <!-- Full-screen reminder alerts + exact, reboot-surviving scheduling. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
