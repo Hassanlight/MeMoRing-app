@@ -3,7 +3,7 @@
 name: memoring
 description: Type a reminder in plain text; Memoring figures out when and fires a full-screen alert.
 publish_to: "none"
-version: 1.0.1+3
+version: 1.0.1+4
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
