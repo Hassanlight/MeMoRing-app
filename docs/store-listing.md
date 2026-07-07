@@ -1,4 +1,10 @@
-# Memoring — AppGallery / Play listing content (v1.0.0)
+# Memoring — AppGallery / Play listing content (v1.0.1)
+
+> Google Play (2026-07-06): the final short (80) + full (4000) descriptions
+> pasted into Play Console live in `store-listing-play.md`. IMPORTANT: Play
+> copy must NOT claim "no cloud / data never leaves your phone" — since v2.4
+> the app sends anonymous analytics/feedback, and the listing must match the
+> Data safety form.
 
 ## App name
 Memoring — Smart Reminders & Alarms
